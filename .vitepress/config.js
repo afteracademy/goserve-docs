@@ -1,67 +1,60 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
-  title: 'goserve Example API',
-  description: 'Production-ready Go backend REST API with PostgreSQL, Redis, and JWT authentication',
-  
-  rewrites: {
-    'postgres/:path(.*)': ':path'
-  },
+  title: 'goserve Documentation',
+  description: 'A robust Go backend architecture framework emphasizing feature separation, clean code, and testability',
   
   themeConfig: {
     logo: '/logo.svg',
     
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Getting Started', link: '/getting-started' },
-      { text: 'API Reference', link: '/api-reference' },
-      { text: 'GitHub', link: 'https://github.com/afteracademy/goserve-example-api-server-postgres' }
+      { 
+        text: 'PostgreSQL Example', 
+        link: '/postgres/',
+        activeMatch: '/postgres/'
+      },
+      { text: 'Framework GitHub', link: 'https://github.com/afteracademy/goserve' },
+      { text: 'Example GitHub', link: 'https://github.com/afteracademy/goserve-example-api-server-postgres' }
     ],
 
-    sidebar: [
-      {
-        text: 'Introduction',
-        items: [
-          { text: 'Overview', link: '/' },
-          { text: 'Getting Started', link: '/getting-started' },
-          { text: 'Installation', link: '/installation' }
-        ]
-      },
-      {
-        text: 'Core Concepts',
-        items: [
-          { text: 'Project Architecture', link: '/architecture' },
-          { text: 'Core Concepts', link: '/core-concepts' },
-          { text: 'Configuration', link: '/configuration' }
-        ]
-      },
-      {
-        text: 'API Documentation',
-        items: [
-          { text: 'API Reference', link: '/api-reference' },
-          { text: 'Examples', link: '/examples' }
-        ]
-      },
-      {
-        text: 'Development',
-        items: [
-          { text: 'Testing', link: '/testing' },
-          { text: 'Deployment', link: '/deployment' },
-          { text: 'Contributing', link: '/contributing' }
-        ]
-      },
-      {
-        text: 'Resources',
-        items: [
-          { text: 'FAQ', link: '/faq' },
-          { text: 'Glossary', link: '/appendices/glossary' },
-          { text: 'Diagrams', link: '/appendices/diagrams' }
-        ]
-      }
-    ],
+    sidebar: {
+      '/': [
+        {
+          text: 'Home',
+          items: [
+            { text: 'Overview', link: '/' }
+          ]
+        }
+      ],
+      '/postgres/': [
+        {
+          text: 'PostgreSQL Example',
+          items: [
+            { text: 'Overview', link: '/postgres/' },
+            { text: 'Getting Started', link: '/postgres/getting-started' },
+            { text: 'Installation', link: '/postgres/installation' }
+          ]
+        },
+        {
+          text: 'Core Concepts',
+          items: [
+            { text: 'Project Architecture', link: '/postgres/architecture' },
+            { text: 'Core Concepts', link: '/postgres/core-concepts' },
+            { text: 'Configuration', link: '/postgres/configuration' }
+          ]
+        },
+        {
+          text: 'API Documentation',
+          items: [
+            { text: 'API Reference', link: '/postgres/api-reference' }
+          ]
+        }
+      ]
+    },
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/afteracademy/goserve-example-api-server-postgres' }
+      { icon: 'github', link: 'https://github.com/afteracademy/goserve' }
     ],
 
     footer: {

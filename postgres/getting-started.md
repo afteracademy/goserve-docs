@@ -245,13 +245,12 @@ goserve-example-api-server-postgres/
 
 ## Next Steps
 
-- **Understand the Architecture**: Read [Project Architecture](/architecture)
-- **Learn Core Concepts**: Explore [Core Concepts](/core-concepts)
-- **Create New Features**: Follow the [Examples](/examples) guide
-- **Deploy to Production**: Check [Deployment](/deployment)
+- **Understand the Architecture**: Read [Project Architecture](/postgres/architecture)
+- **Learn Core Concepts**: Explore [Core Concepts](/postgres/core-concepts)
+- **View API Reference**: Check out the [API Reference](/postgres/api-reference)
+- **Configure Your Setup**: Review [Configuration](/postgres/configuration)
 
 ## Need Help?
 
-- 📖 Read the [FAQ](/faq)
 - 💬 Ask questions on [GitHub Discussions](https://github.com/afteracademy/goserve-example-api-server-postgres/discussions)
 - 🐛 Report bugs via [GitHub Issues](https://github.com/afteracademy/goserve-example-api-server-postgres/issues)
