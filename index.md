@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: "goserve"
-  text: "Go Backend Architecture"
-  tagline: A robust, performant, and scalable framework emphasizing feature separation, clean code, and testability
+  text: "Go API Backend Framework"
+  tagline: A robust framework for building efficient, reliable and scalable server-side applications
   image:
     src: https://afteracademy.com/_next/static/media/mascot.a7e3d8af.svg
     alt: goserve
@@ -16,7 +16,7 @@ hero:
       text: MongoDB Example
       link: /mongo/
     - theme: alt
-      text: gomicro Microservices
+      text: Microservices Example
       link: /micro/
     - theme: alt
       text: View Framework on GitHub
@@ -37,10 +37,10 @@ features:
     details: JWT authentication, middleware support, and secure patterns built-in
   - icon: 🗄️
     title: Database Support
-    details: PostgreSQL (pgx) with connection pooling and Redis for caching
+    details: PostgreSQL (pgx) with connection pooling and MongoDB integrations
   - icon: ⚡
     title: Redis Integration
-    details: Built-in Redis support for caching and session management
+    details: Built-in Redis support for caching
   - icon: 📦
     title: Production Ready
     details: Validator, Viper config, and crypto utilities included out of the box
@@ -89,7 +89,7 @@ Learn by example with complete, production-ready implementations:
 
 1. **[goserve-example-api-server-postgres](/postgres/)** - Complete REST API with PostgreSQL, Redis, and JWT authentication
 2. **[goserve-example-api-server-mongo](/mongo/)** - Complete REST API with MongoDB, Redis, and JWT authentication
-3. **[gomicro](/micro/)** - Microservices architecture with Kong API gateway, NATS messaging, and service discovery
+3. **[gomicro](/micro/)** - Microservices architecture with Kong API gateway, NATS messaging, and Docker orchestration
 
 ## Quick Start
 
@@ -101,7 +101,7 @@ go get github.com/afteracademy/goserve
 
 ### Try the PostgreSQL Example
 
-The best way to get started is with our complete example project:
+The best way to get started is with the complete example project:
 
 ```bash
 git clone https://github.com/afteracademy/goserve-example-api-server-postgres.git

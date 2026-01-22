@@ -19,43 +19,34 @@ goserve is built on a **layered, feature-based architecture** that promotes clea
 
 ```
 goserve/
-├── api/                    # Feature-based API modules
+├── api/                   # Feature-based API modules
 │   ├── auth/              # Authentication endpoints
 │   │   ├── dto/           # Request/Response DTOs
 │   │   ├── model/         # Database models
-│   │   ├── controller.go  # HTTP handlers
-│   │   ├── service.go     # Business logic
 │   │   └── middleware/    # Auth middleware
+│   │   ├── controller.go  # HTTP handlers
+│   │   └── service.go     # Business logic
+│   └── user/              # User
+│   │   ├── dto/
+│   │   ├── model/
+│   │   ├── controller.go
+│   │   └── service.go
 │   └── blog/              # Blog feature
 │       ├── dto/
 │       ├── model/
 │       ├── controller.go
 │       └── service.go
 ├── cmd/                   # Application entry points
-│   └── main.go           # Main application
+│   └── main.go            # Main application
 ├── common/                # Shared utilities
-├── config/                # Configuration management
+├── config/                 # Configuration management
 ├── startup/               # Server initialization
-│   ├── server.go         # HTTP server setup
-│   ├── module.go         # Dependency injection
-│   └── testserver.go     # Test server utilities
-├── network/               # HTTP networking layer
-│   ├── controller.go     # Base controller interface
-│   ├── middleware.go     # Authentication/Authorization
-│   └── router.go         # Route management
-├── postgres/              # PostgreSQL support
-│   ├── connection.go     # Connection pooling
-│   ├── pool.go           # Pool management
-│   └── utilities.go      # Query helpers
-├── mongo/                 # MongoDB support
-├── redis/                 # Redis caching
-├── middleware/            # Built-in middleware
-│   ├── auth.go           # JWT authentication
-│   ├── cors.go           # CORS handling
-│   └── logger.go         # Request logging
-├── dto/                   # Shared DTOs
-├── utility/               # Utility functions
+│   ├── server.go          # HTTP server setup
+│   ├── module.go          # Dependency injection
+│   └── testserver.go      # Test server utilities
+├── utils/                 # Utility functions
 └── keys/                  # RSA keys for JWT
+└── docker-compose.yml     # Docker orchestration
 ```
 
 ## Layered Architecture Pattern
@@ -69,13 +60,17 @@ Handles HTTP requests and responses, acts as the entry point:
 **Location**: `api/[feature]/controller.go`
 
 **Responsibilities**:
+
 - Route definition and mounting
 - Request parsing and validation
+- Authentication and authorization checks
+- Calling service layer methods
 - Response formatting
 - HTTP-specific logic handling
 - Error response formatting
 
 **Key Pattern**:
+
 ```go
 type controller struct {
     network.Controller
@@ -83,20 +78,32 @@ type controller struct {
     service Service
 }
 
-func (c *controller) createHandler(ctx *gin.Context) {
-    body, err := network.ReqBody[dto.CreateRequest](ctx)
-    if err != nil {
-        network.SendBadRequestError(ctx, err.Error(), err)
-        return
-    }
+func NewController(
+	authProvider network.AuthenticationProvider,
+	authorizeProvider network.AuthorizationProvider,
+	service Service,
+) network.Controller {
+	return &controller{
+		Controller: network.NewController("/auth", authProvider, authorizeProvider),
+		ContextPayload: common.NewContextPayload(),
+		service:        service,
+	}
+}
 
-    result, err := c.service.Create(body)
-    if err != nil {
-        network.SendMixedError(ctx, err)
-        return
-    }
+func (c *controller) MountRoutes(group *gin.RouterGroup) {
+	group.DELETE("/signout", c.Authentication(), c.signOutBasic)
+}
 
-    network.SendSuccessDataResponse(ctx, "success", result)
+func (c *controller) signOutBasic(ctx *gin.Context) {
+	keystore := c.MustGetKeystore(ctx)
+
+	err := c.service.SignOut(keystore)
+	if err != nil {
+		network.SendInternalServerError(ctx, "something went wrong", err)
+		return
+	}
+
+	network.SendSuccessMsgResponse(ctx, "signout success")
 }
 ```
 
@@ -107,6 +114,7 @@ Contains business logic and orchestrates between controllers and repositories:
 **Location**: `api/[feature]/service.go`
 
 **Responsibilities**:
+
 - Business rule enforcement
 - Data transformation and validation
 - Database operations coordination
@@ -114,13 +122,25 @@ Contains business logic and orchestrates between controllers and repositories:
 - External service integration
 
 **Key Pattern**:
+
 ```go
-type service struct {
-    db    *pgxpool.Pool
-    cache redis.Cache[dto.EntityCache]
+type Service interface {
+	CreateBlog(d *dto.CreateBlog) (*model.Blog, error)
+		// Other service methods...
 }
 
-func (s *service) Create(dto *dto.CreateRequest) (*model.Entity, error) {
+type service struct {
+    db postgres.Database,
+    cache redis.Cache[dto.BlogPublic],
+}
+
+func NewService(db postgres.Database) Service {
+	return &service{
+		db: db,
+	}
+}
+
+func (s *service) CreateBlog(dto *dto.CreateBlog) (*dto.BlogPublic, error) {
     // Business logic validation
     // Database operations
     // Cache invalidation
@@ -135,12 +155,14 @@ Defines database schema and internal data structures:
 **Location**: `api/[feature]/model/[entity].go`
 
 **Responsibilities**:
+
 - Database table representation
 - Data type definitions
 - Field mapping documentation
 - Internal domain entities
 
 **Key Pattern**:
+
 ```go
 type Blog struct {
     ID          uuid.UUID   // id
@@ -161,12 +183,14 @@ Defines request/response contracts and API boundaries:
 **Location**: `api/[feature]/dto/[operation].go`
 
 **Responsibilities**:
+
 - Input validation and sanitization
 - Output formatting and filtering
 - API contract documentation
 - Sensitive data hiding
 
 **Key Pattern**:
+
 ```go
 type BlogCreate struct {
     Title       string   `json:"title" validate:"required,min=3,max=500"`
@@ -192,33 +216,81 @@ type BlogPublic struct {
 goserve implements JWT-based authentication with RSA key pairs:
 
 **Key Components**:
+
 - RSA public/private key pairs for token signing
 - JWT middleware for token validation
 - Claims extraction and user context setting
 - Refresh token support
 
 **Implementation**:
+
 ```go
+type authenticationProvider struct {
+	common.ContextPayload
+	authService auth.Service
+	userService user.Service
+}
+
+func NewAuthenticationProvider(
+	authService auth.Service,
+	userService user.Service,
+) network.AuthenticationProvider {
+	return &authenticationProvider{
+		ContextPayload: common.NewContextPayload(),
+		authService:    authService,
+		userService:    userService,
+	}
+}
 // Authentication middleware extracts and validates JWT
 func (m *authenticationProvider) Middleware() gin.HandlerFunc {
-    return func(ctx *gin.Context) {
-        token := utils.ExtractBearerToken(ctx.GetHeader("Authorization"))
+	return func(ctx *gin.Context) {
+		authHeader := ctx.GetHeader(network.AuthorizationHeader)
+		if len(authHeader) == 0 {
+			network.SendUnauthorizedError(ctx, "permission denied: missing Authorization", nil)
+			return
+		}
 
-        claims, err := m.authService.VerifyToken(token)
-        if err != nil {
-            network.SendUnauthorizedError(ctx, err.Error(), err)
-            return
-        }
+		token := utils.ExtractBearerToken(authHeader)
+		if token == "" {
+			network.SendUnauthorizedError(ctx, "permission denied: invalid Authorization", nil)
+			return
+		}
 
-        user, err := m.userService.FetchUserById(claims.Subject)
-        if err != nil {
-            network.SendUnauthorizedError(ctx, "User not found", err)
-            return
-        }
+		claims, err := m.authService.VerifyToken(token)
+		if err != nil {
+			network.SendUnauthorizedError(ctx, err.Error(), err)
+			return
+		}
 
-        m.SetUser(ctx, user)
-        ctx.Next()
-    }
+		valid := m.authService.ValidateClaims(claims)
+		if !valid {
+			network.SendUnauthorizedError(ctx, "permission denied: invalid claims", nil)
+			return
+		}
+
+		userId, err := uuid.Parse(claims.Subject)
+		if err != nil {
+			network.SendUnauthorizedError(ctx, "permission denied: invalid claims subject", nil)
+			return
+		}
+
+		user, err := m.userService.FetchUserById(userId)
+		if err != nil {
+			network.SendUnauthorizedError(ctx, "permission denied: claims subject does not exists", err)
+			return
+		}
+
+		keystore, err := m.authService.FetchKeystore(user, claims.ID)
+		if err != nil || keystore == nil {
+			network.SendUnauthorizedError(ctx, "permission denied: invalid access token", err)
+			return
+		}
+
+		m.SetUser(ctx, user)
+		m.SetKeystore(ctx, keystore)
+
+		ctx.Next()
+	}
 }
 ```
 
@@ -227,12 +299,11 @@ func (m *authenticationProvider) Middleware() gin.HandlerFunc {
 For service-to-service communication and external API access:
 
 **Key Components**:
+
 - Extensible middleware system
-- Custom apikey-auth plugin
-- Service-level API key validation
-- Rate limiting and access control
 
 **Request Flow**:
+
 ```
 Client Request → Middleware Chain → Controller → Service → Database
 ```
@@ -243,21 +314,45 @@ Implements hierarchical permission system:
 
 ```go
 // Authorization middleware checks user roles
-func (m *authorizationProvider) Middleware(requiredRoles ...string) gin.HandlerFunc {
-    return func(ctx *gin.Context) {
-        user := m.GetUser(ctx)
-        if user == nil {
-            network.SendUnauthorizedError(ctx, "User not authenticated", nil)
-            return
-        }
+type authorizationProvider struct {
+	common.ContextPayload
+}
 
-        if !m.hasRequiredRole(user, requiredRoles) {
-            network.SendForbiddenError(ctx, "Insufficient permissions", nil)
-            return
-        }
+func NewAuthorizationProvider() network.AuthorizationProvider {
+	return &authorizationProvider{
+		ContextPayload: common.NewContextPayload(),
+	}
+}
 
-        ctx.Next()
-    }
+func (m *authorizationProvider) Middleware(roleNames ...string) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		if len(roleNames) == 0 {
+			network.SendForbiddenError(ctx, "permission denied: role missing", nil)
+			return
+		}
+
+		user := m.MustGetUser(ctx)
+
+		hasRole := false
+		for _, code := range roleNames {
+			for _, role := range user.Roles {
+				if role.Code == model.RoleCode(code) {
+					hasRole = true
+					break
+				}
+			}
+			if hasRole {
+				break
+			}
+		}
+
+		if !hasRole {
+			network.SendForbiddenError(ctx, "permission denied: does not have sufficient role", nil)
+			return
+		}
+
+		ctx.Next()
+	}
 }
 ```
 
@@ -266,22 +361,34 @@ func (m *authorizationProvider) Middleware(requiredRoles ...string) gin.HandlerF
 Implements intelligent caching with database fallbacks:
 
 ```go
-func (s *service) GetBlogById(id uuid.UUID) (*dto.BlogPublic, error) {
-    // Try cache first
-    cached, err := s.cache.Get(id.String())
-    if err == nil {
-        return cached, nil
-    }
+type Service interface {
+	SetBlogDtoCacheById(blog *dto.BlogPublic) error
+	GetBlogDtoCacheById(id uuid.UUID) (*dto.BlogPublic, error)
+	// Other service methods...
+}
 
-    // Query database
-    blog, err := s.GetPublishedBlogById(id)
-    if err != nil {
-        return nil, err
-    }
+type service struct {
+	db              postgres.Database
+	publicBlogCache redis.Cache[dto.BlogPublic]
+	// Other dependencies...
+}
 
-    // Update cache
-    s.cache.Set(id.String(), blog, time.Hour)
-    return blog, nil
+func NewService(db postgres.Database, store redis.Store, userService user.Service) Service {
+	return &service{
+		db:              db,
+		publicBlogCache: redis.NewCache[dto.BlogPublic](store),
+		// Initialize other dependencies...
+	}
+}
+
+func (s *service) SetBlogDtoCacheById(blog *dto.BlogPublic) error {
+	key := "blog_" + blog.ID.String()
+	return s.publicBlogCache.SetJSON(key, blog, time.Duration(10*time.Minute))
+}
+
+func (s *service) GetBlogDtoCacheById(id uuid.UUID) (*dto.BlogPublic, error) {
+	key := "blog_" + id.String()
+	return s.publicBlogCache.GetJSON(key)
 }
 ```
 
@@ -294,7 +401,7 @@ HTTP Request
     ↓
 Root Middleware (Global)
 ├── Error Catcher
-├── Request Validation
+├── API Key Authentication
 └── Not Found Handler
     ↓
 Router (Gin)
@@ -320,14 +427,11 @@ Controller Handler
     ↓
 Service Layer (Business Logic)
 ├── Business Rule Validation
-├── Query Construction
-├── Parameter Binding
-├── Result Mapping
 ├── Database Operations
 ├── Cache Management
 └── External Service Calls
     ↓
-Database/External Services
+Controller Handler
     ↓
 Response Formatting
 ├── Success (200-299)
@@ -337,88 +441,36 @@ Response Formatting
 
 ### Middleware Chain Details
 
-**Global Middleware** (applied to all routes):
-- Error recovery and logging
-- CORS headers
-- Request ID generation
-- Rate limiting
-
 **Authentication Middleware** (protected routes):
+
 - JWT token extraction and validation
 - User context loading
-- Session management
 
 **Authorization Middleware** (role-protected routes):
+
 - Permission checking
 - Role validation
 - Access control
-
-**Feature Middleware** (feature-specific):
-- Input validation
-- Custom business rules
-- Audit logging
 
 ## Feature-Based Organization
 
 goserve organizes code by **business features** rather than technical layers, making it easier for teams to work independently:
 
-### Recommended Project Structure
-
-```
-your-project/
-├── api/                    # Feature-based API modules
-│   ├── auth/              # Authentication & user management
-│   │   ├── dto/           # Login, signup, token DTOs
-│   │   ├── model/         # User model
-│   │   ├── controller.go  # /auth/* endpoints
-│   │   ├── service.go     # Auth business logic
-│   │   └── middleware/    # Auth-specific middleware
-│   ├── blog/              # Blog management feature
-│   │   ├── author/        # Author-specific endpoints (/blog/author/*)
-│   │   ├── editor/        # Editor-specific endpoints (/blog/editor/*)
-│   │   ├── dto/           # Blog DTOs (shared)
-│   │   ├── model/         # Blog models (shared)
-│   │   ├── controller.go  # /blog endpoints
-│   │   └── service.go     # Blog business logic
-│   ├── blogs/             # Public blog listing (/blogs/*)
-│   │   ├── dto/           # Public blog DTOs
-│   │   ├── controller.go  # Public endpoints
-│   │   └── service.go     # Public blog service
-│   └── contact/           # Contact form feature
-│       ├── dto/           # Contact DTOs
-│       ├── controller.go  # /contact endpoints
-│       └── service.go     # Contact handling
-├── cmd/                   # Application entry points
-│   └── main.go           # Main application
-├── common/                # Shared utilities
-│   └── payload.go        # Request context helpers
-├── config/                # Configuration management
-│   └── env.go            # Environment variables
-├── startup/               # Server initialization
-│   ├── server.go         # HTTP server setup
-│   ├── module.go         # Dependency injection container
-│   └── testserver.go     # Test server utilities
-├── tests/                 # Integration tests
-├── utils/                 # Utility functions
-├── keys/                  # RSA keys for JWT
-├── .tools/                # Code generation tools
-└── docker-compose.yml     # Docker orchestration
-```
-
 ### Feature Organization Principles
 
 **Independent Features**: Each feature is self-contained with its own directory:
+
 ```
 api/auth/     # Complete auth feature
-api/blog/     # Blog management
-api/blogs/    # Public blog access
+api/blog/     # Blog management feature
 ```
 
 **Shared Resources**: Related features can share models and DTOs:
+
 ```
 api/blog/
-├── dto/      # Shared between author/editor features
-├── model/    # Shared database models
+├── dto/       # Shared between author/editor features
+├── model/     # Shared database models
 └── service.go # Shared business logic
 ```
 
@@ -506,7 +558,6 @@ Built-in support for testing:
 
 goserve's modular architecture supports scaling to larger applications through service extraction and component reuse.
 
-
 ## Performance Considerations
 
 - **Connection Pooling**: Optimized database connections
@@ -519,27 +570,118 @@ goserve's modular architecture supports scaling to larger applications through s
 goserve supports comprehensive testing at all levels:
 
 ### Unit Tests
+
 ```go
 func TestAuthController_SignupSuccess(t *testing.T) {
-    mockService := new(auth.MockService)
-    mockService.On("SignUpBasic", mock.Anything).Return(&dto.UserAuth{}, nil)
+	mockAuthProvider := new(network.MockAuthenticationProvider)
+	mockAuthProvider.On("Middleware").Return(gin.HandlerFunc(func(ctx *gin.Context) {
+		ctx.Next()
+	}))
 
-    controller := auth.NewController(nil, nil, mockService)
-    // Test controller logic
+	mockAuthzProvider := new(network.MockAuthorizationProvider)
+	mockAuthzProvider.On("Middleware", "ROLE").Return(gin.HandlerFunc(func(ctx *gin.Context) {
+		ctx.Next()
+	}))
+
+	body := `{"email":"test@abc.com","password":"123456","name":"test name"}`
+
+	singUpDto := &dto.SignUpBasic{
+		Email:    "test@abc.com",
+		Password: "123456",
+		Name:     "test name",
+	}
+
+	authDto := &dto.UserAuth{
+		User: &userDto.UserPrivate{
+			Name:  "test name",
+			Email: "test@abc.com",
+			ID:    uuid.New(),
+			Roles: []*userDto.RoleInfo{
+				{
+					ID:   uuid.New(),
+					Code: model.RoleCodeLearner,
+				},
+			},
+			ProfilePicURL: nil,
+		},
+		Tokens: &dto.Tokens{
+			AccessToken:  "access-token",
+			RefreshToken: "refresh-token",
+		},
+	}
+
+	authService := new(MockService)
+	authService.On("SignUpBasic", singUpDto).Return(authDto, nil)
+
+	c := NewController(mockAuthProvider, mockAuthzProvider, authService)
+
+	rr := network.MockTestController(t, "POST", "/auth/signup/basic", body, c)
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Contains(t, rr.Body.String(), `"message":"success"`)
 }
+
 ```
 
 ### Integration Tests
+
 ```go
-func TestIntegration_CreateBlog(t *testing.T) {
-    router, module, teardown := startup.TestServer()
-    defer teardown()
+func TestIntegrationAuthController_SignupSuccess(t *testing.T) {
+	router, module, shutdown := startup.TestServer()
+	var role *roleModel.Role
+	var apikey *model.ApiKey
+	defer shutdown()
 
-    token := createTestUser(t, router)
-    response := makeRequest(t, router, "POST", "/blog/author", token, body)
+	t.Cleanup(func() {
+		if apikey != nil {
+			module.GetInstance().AuthService.DeleteApiKey(apikey)
+		}
+	})
 
-    assert.Equal(t, 200, response.StatusCode)
+	t.Cleanup(func() {
+		if role != nil {
+			module.GetInstance().UserService.DeleteRole(role)
+		}
+	})
+
+	t.Cleanup(func() {
+		module.GetInstance().UserService.RemoveUserByEmail("test@abc.com")
+	})
+
+	key, err := utility.GenerateRandomString(6)
+	if err != nil {
+		t.Fatalf("could not create key: %v", err)
+	}
+
+	apikey, err = module.GetInstance().AuthService.CreateApiKey(key, 1, []model.Permission{"test"}, []string{"comment"})
+	if err != nil {
+		t.Fatalf("could not create apikey: %v", err)
+	}
+
+	role, err = module.GetInstance().UserService.CreateRole(roleModel.RoleCodeLearner)
+	if err != nil {
+		t.Fatalf("could not create role: %v", err)
+	}
+
+	body := `{"email":"test@abc.com","password":"123456","name":"test name"}`
+
+	req, err := http.NewRequest("POST", "/auth/signup/basic", bytes.NewBuffer([]byte(body)))
+	if err != nil {
+		t.Fatalf("could not create request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Add(network.ApiKeyHeader, apikey.Key)
+
+	rr := httptest.NewRecorder()
+	router.GetEngine().ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Contains(t, rr.Body.String(), `"message":"success"`)
+	assert.Contains(t, rr.Body.String(), `"data"`)
+	assert.Contains(t, rr.Body.String(), `"user"`)
+	assert.Contains(t, rr.Body.String(), `"roles"`)
+	assert.Contains(t, rr.Body.String(), `"tokens"`)
 }
+
 ```
 
 ## Next Steps
