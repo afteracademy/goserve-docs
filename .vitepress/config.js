@@ -14,6 +14,16 @@ export default defineConfig({
         link: '/postgres/',
         activeMatch: '/postgres/'
       },
+      {
+        text: 'MongoDB Example',
+        link: '/mongo/',
+        activeMatch: '/mongo/'
+      },
+      {
+        text: 'gomicro Microservices',
+        link: '/micro/',
+        activeMatch: '/micro/'
+      },
       { text: 'Framework GitHub', link: 'https://github.com/afteracademy/goserve' },
       { text: 'Example GitHub', link: 'https://github.com/afteracademy/goserve-example-api-server-postgres' }
     ],
@@ -39,7 +49,14 @@ export default defineConfig({
         {
           text: 'Examples',
           items: [
-            { text: 'PostgreSQL Example', link: '/postgres/' }
+            { text: 'PostgreSQL Example', link: '/postgres/' },
+            { text: 'MongoDB Example', link: '/mongo/' }
+          ]
+        },
+        {
+          text: 'Microservices',
+          items: [
+            { text: 'gomicro Guide', link: '/micro/' }
           ]
         }
       ],
@@ -64,6 +81,34 @@ export default defineConfig({
           text: 'API Documentation',
           items: [
             { text: 'API Reference', link: '/postgres/api-reference' }
+          ]
+        }
+      ],
+      '/mongo/': [
+        {
+          text: 'MongoDB Example',
+          items: [
+            { text: 'Overview', link: '/mongo/' },
+            { text: 'Getting Started', link: '/mongo/getting-started' },
+            { text: 'Installation', link: '/mongo/installation' },
+            { text: 'Architecture', link: '/mongo/architecture' },
+            { text: 'Core Concepts', link: '/mongo/core-concepts' },
+            { text: 'Configuration', link: '/mongo/configuration' },
+            { text: 'API Reference', link: '/mongo/api-reference' }
+          ]
+        }
+      ],
+      '/micro/': [
+        {
+          text: 'gomicro Microservices',
+          items: [
+            { text: 'Overview', link: '/micro/' },
+            { text: 'Getting Started', link: '/micro/getting-started' },
+            { text: 'Installation', link: '/micro/installation' },
+            { text: 'Architecture', link: '/micro/architecture' },
+            { text: 'Core Concepts', link: '/micro/core-concepts' },
+            { text: 'Configuration', link: '/micro/configuration' },
+            { text: 'API Reference', link: '/micro/api-reference' }
           ]
         }
       ]

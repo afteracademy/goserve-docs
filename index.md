@@ -13,6 +13,12 @@ hero:
       text: PostgreSQL Example
       link: /postgres/
     - theme: alt
+      text: MongoDB Example
+      link: /mongo/
+    - theme: alt
+      text: gomicro Microservices
+      link: /micro/
+    - theme: alt
       text: View Framework on GitHub
       link: https://github.com/afteracademy/goserve
 
@@ -31,7 +37,7 @@ features:
     details: JWT authentication, middleware support, and secure patterns built-in
   - icon: 🗄️
     title: Database Support
-    details: PostgreSQL (pgx) and MongoDB drivers with connection pooling and utilities
+    details: PostgreSQL (pgx) with connection pooling and Redis for caching
   - icon: ⚡
     title: Redis Integration
     details: Built-in Redis support for caching and session management
@@ -73,10 +79,8 @@ goserve is built with industry-standard Go libraries:
 - **Gin** - Fast HTTP web framework
 - **JWT** - Secure token-based authentication
 - **pgx** - PostgreSQL driver with connection pooling
-- **MongoDB Driver** - Official MongoDB driver support
 - **go-redis** - Redis client for caching and sessions
 - **Validator** - Request validation utilities
-- **Viper** - Configuration management
 - **Crypto** - Cryptographic utilities
 
 ## Example Projects
@@ -84,7 +88,8 @@ goserve is built with industry-standard Go libraries:
 Learn by example with complete, production-ready implementations:
 
 1. **[goserve-example-api-server-postgres](/postgres/)** - Complete REST API with PostgreSQL, Redis, and JWT authentication
-2. **goserve-example-api-server-mongo** - MongoDB-based example implementation
+2. **[goserve-example-api-server-mongo](/mongo/)** - Complete REST API with MongoDB, Redis, and JWT authentication
+3. **[gomicro](/micro/)** - Microservices architecture with Kong API gateway, NATS messaging, and service discovery
 
 ## Quick Start
 

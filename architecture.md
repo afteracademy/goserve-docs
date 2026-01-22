@@ -55,7 +55,6 @@ goserve/
 │   └── logger.go         # Request logging
 ├── dto/                   # Shared DTOs
 ├── utility/               # Utility functions
-├── micro/                 # Microservice patterns
 └── keys/                  # RSA keys for JWT
 ```
 
@@ -321,14 +320,12 @@ Controller Handler
     ↓
 Service Layer (Business Logic)
 ├── Business Rule Validation
+├── Query Construction
+├── Parameter Binding
+├── Result Mapping
 ├── Database Operations
 ├── Cache Management
 └── External Service Calls
-    ↓
-Repository Layer (Data Access)
-├── Query Construction
-├── Parameter Binding
-└── Result Mapping
     ↓
 Database/External Services
     ↓

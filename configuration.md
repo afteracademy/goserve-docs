@@ -8,44 +8,9 @@ goserve uses a comprehensive configuration system that supports environment vari
 
 ## Network Configuration
 
-### Basic Router Setup
-
-```go
-import (
-    "github.com/gin-gonic/gin"
-    "github.com/afteracademy/goserve/network"
-)
-
-func main() {
-    // Set Gin mode
-    gin.SetMode(gin.ReleaseMode) // or gin.DebugMode
-    
-    router := gin.Default()
-    
-    // Create controller with base path
-    controller := network.NewController("/api", nil, nil)
-    controller.MountRoutes(router)
-    
-    router.Run(":8080")
-}
-```
-
 ### Controller Configuration
 
-```go
-type ControllerConfig struct {
-    BasePath           string
-    AuthProvider       network.AuthenticationProvider
-    AuthorizeProvider  network.AuthorizationProvider
-    Middleware         []gin.HandlerFunc
-}
-
-controller := network.NewController(
-    "/api/v1",
-    authProvider,
-    authorizeProvider,
-)
-```
+goserve uses a structured startup system. Controllers are configured through the dependency injection system rather than direct Gin router setup. See the PostgreSQL example for the complete configuration pattern.
 
 ## PostgreSQL Configuration
 
@@ -163,40 +128,6 @@ SERVICE_PORT=8002
 - **MaxConnLifetime**: Maximum lifetime of a connection
 - **MaxConnIdleTime**: Maximum idle time before closing a connection
 
-## MongoDB Configuration
-
-### Client Setup
-
-```go
-import "github.com/afteracademy/goserve/mongo"
-
-type MongoConfig struct {
-    URI      string
-    Database string
-    Options  *options.ClientOptions
-}
-
-config := MongoConfig{
-    URI:      "mongodb://localhost:27017",
-    Database: "mydb",
-}
-
-client, err := mongo.NewClient(config)
-if err != nil {
-    log.Fatal(err)
-}
-defer client.Disconnect(context.Background())
-```
-
-### Environment Variables
-
-```bash
-# MongoDB Configuration
-MONGO_URI=mongodb://localhost:27017
-MONGO_DATABASE=mydb
-MONGO_MAX_POOL_SIZE=100
-MONGO_MIN_POOL_SIZE=10
-```
 
 ## Redis Configuration
 

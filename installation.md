@@ -50,7 +50,6 @@ goserve includes the following dependencies (automatically managed):
 
 - **Gin** - HTTP web framework
 - **pgx** - PostgreSQL driver (for PostgreSQL support)
-- **go.mongodb.org/mongo-driver** - MongoDB driver (for MongoDB support)
 - **github.com/redis/go-redis** - Redis client (for Redis support)
 - **github.com/go-playground/validator** - Validation library
 - **github.com/spf13/viper** - Configuration management
@@ -76,7 +75,6 @@ github.com/afteracademy/goserve v2.1.1
 import (
     "github.com/afteracademy/goserve/network"
     "github.com/afteracademy/goserve/postgres"  // For PostgreSQL
-    "github.com/afteracademy/goserve/mongo"     // For MongoDB
     "github.com/afteracademy/goserve/redis"    // For Redis
     "github.com/afteracademy/goserve/middleware" // For middleware
 )
@@ -121,13 +119,6 @@ If you need PostgreSQL support:
 go get github.com/afteracademy/goserve/postgres
 ```
 
-### MongoDB
-
-If you need MongoDB support:
-
-```bash
-go get github.com/afteracademy/goserve/mongo
-```
 
 ### Redis
 
