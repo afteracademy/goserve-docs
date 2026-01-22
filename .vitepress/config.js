@@ -1,6 +1,7 @@
 import { defineConfig } from "vitepress";
 
 export default defineConfig({
+  base: "/",
   title: "goserve docs",
   description:
     "A robust Go backend architecture framework emphasizing feature separation, clean code, and testability",
@@ -10,9 +11,9 @@ export default defineConfig({
 
     nav: [
       { text: "Home", link: "/" },
-      { text: "Postgres", link: "/postgres/" },
-      { text: "Mongo", link: "/mongo/" },
-      { text: "Microservices", link: "/micro/" },
+      { text: "Postgres", link: "/postgres" },
+      { text: "Mongo", link: "/mongo" },
+      { text: "Microservices", link: "/micro" },
       { text: "GitHub", link: "https://github.com/afteracademy/goserve" },
       {
         text: "AfterAcademy",
@@ -43,13 +44,13 @@ export default defineConfig({
         {
           text: "Examples",
           items: [
-            { text: "PostgreSQL Example", link: "/postgres/" },
-            { text: "MongoDB Example", link: "/mongo/" },
+            { text: "PostgreSQL Example", link: "/postgres" },
+            { text: "MongoDB Example", link: "/mongo" },
           ],
         },
         {
           text: "Microservices",
-          items: [{ text: "gomicro Guide", link: "/micro/" }],
+          items: [{ text: "gomicro Guide", link: "/micro" }],
         },
       ],
       "/postgres/": [
@@ -84,7 +85,7 @@ export default defineConfig({
         {
           text: "gomicro Microservices",
           items: [
-            { text: "Overview", link: "/micro/" },
+            { text: "Overview", link: "/micro" },
             { text: "Getting Started", link: "/micro/getting-started" },
             { text: "Installation", link: "/micro/installation" },
             { text: "Architecture", link: "/micro/architecture" },
