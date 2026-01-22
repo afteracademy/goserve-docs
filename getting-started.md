@@ -136,11 +136,11 @@ goserve provides several key components organized in a layered architecture:
 
 The best way to learn goserve is through example projects:
 
-1. **[PostgreSQL Example](/postgres)** - Complete REST API with PostgreSQL, Redis, JWT authentication, role-based authorization, and comprehensive testing
+1. **[PostgreSQL Example](/postgres/)** - Complete REST API with PostgreSQL, Redis, JWT authentication, role-based authorization, and comprehensive testing
 
 ## Learn by Example
 
-The best way to understand goserve is through the **[PostgreSQL Example](/postgres)**, which demonstrates:
+The best way to understand goserve is through the **[PostgreSQL Example](/postgres/)**, which demonstrates:
 - Complete server setup with environment configuration
 - JWT authentication and role-based authorization
 - PostgreSQL integration with connection pooling
@@ -160,7 +160,7 @@ curl http://localhost:8080/hello
 
 - **Understand the Architecture**: Read [Framework Architecture](/architecture) to learn goserve's layered design
 - **Learn Core Concepts**: Explore [Core Concepts](/core-concepts) for JWT auth, services, DTOs, and caching
-- **See a Complete Example**: Check out the [PostgreSQL Example](/postgres) with full authentication and blog features
+- **See a Complete Example**: Check out the [PostgreSQL Example](/postgres/) with full authentication and blog features
 - **Configure Your Setup**: Review [Configuration](/configuration) for environment variables and database setup
 
 ## Need Help?
