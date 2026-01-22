@@ -15,7 +15,6 @@ This guide covers the fundamental concepts and patterns used in the goserve fram
 - [Validation](#validation)
 - [Database Connections](#database-connections)
 - [Caching](#caching)
-- [Microservices with gomicro](#microservices-with-gomicro)
 
 ---
 
@@ -146,7 +145,7 @@ func (s *service) FindByID(id uuid.UUID) (*model.Entity, error) {
 - **Caching**: Manage cache invalidation and updates
 - **Transactions**: Handle database transactions
 - **External Services**: Integrate with third-party APIs
-- **Event Publishing**: Send events for microservices communication
+- **Event Publishing**: Send events for system integration
 
 ---
 
@@ -709,58 +708,6 @@ func ValidateRequest(dto interface{}) gin.HandlerFunc {
 
 ---
 
-## Microservices with gomicro
-
-goserve extends to microservices through the gomicro framework:
-
-### gomicro Architecture
-
-```
-Kong API Gateway
-    ↓
-[auth-service] ←→ NATS ←→ [blog-service]
-    ↓                        ↓
-PostgreSQL + Redis      PostgreSQL + Redis
-```
-
-### Service Communication Patterns
-
-**API Gateway Routing**:
-```go
-// Kong routes requests to appropriate services
-GET /api/auth/login → auth-service:8000
-GET /api/blog/posts → blog-service:8001
-```
-
-**Inter-Service Communication**:
-```go
-// Services communicate via NATS
-func (s *blogService) onUserCreated(msg *nats.Msg) {
-    var userEvent UserCreatedEvent
-    json.Unmarshal(msg.Data, &userEvent)
-
-    // Update blog author information
-    s.updateBlogAuthors(userEvent.UserID, userEvent.UserInfo)
-}
-```
-
-**API Key Validation**:
-```go
-// Kong calls auth service for API key validation
-func (s *authService) verifyAPIKey(apiKey string) (*APIKey, error) {
-    return s.repository.FindByKey(apiKey)
-}
-```
-
-### Benefits of Microservices Approach
-
-- **Independent Scaling**: Scale services individually
-- **Technology Diversity**: Use different databases/languages per service
-- **Fault Isolation**: Service failures don't cascade
-- **Team Autonomy**: Teams can work independently
-- **Easier Testing**: Test services in isolation
-
----
 
 ## Database Connections
 

@@ -4,7 +4,7 @@ Configure the goserve framework components for your application.
 
 ## Overview
 
-goserve uses a comprehensive configuration system that supports environment variables, configuration files, and type-safe configuration structs. The framework is designed for production deployments with secure credential management, database connection pooling, and microservices-ready settings.
+goserve uses a comprehensive configuration system that supports environment variables, configuration files, and type-safe configuration structs. The framework is designed for production deployments with secure credential management and database connection pooling.
 
 ## Network Configuration
 
@@ -149,9 +149,8 @@ CORS_ALLOWED_ORIGINS=https://yourapp.com,https://app.yourapp.com
 RATE_LIMIT_REQUESTS_PER_MINUTE=100
 
 # ===========================================
-# MICROSERVICES CONFIGURATION (for gomicro)
+# MICROSERVICES CONFIGURATION
 # ===========================================
-NATS_URL=nats://localhost:4222
 KONG_ADMIN_URL=http://localhost:8001
 SERVICE_NAME=blog-service
 SERVICE_PORT=8002

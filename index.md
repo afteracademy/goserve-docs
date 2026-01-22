@@ -13,9 +13,6 @@ hero:
       text: PostgreSQL Example
       link: /postgres/
     - theme: alt
-      text: gomicro - Microservices
-      link: /gomicro/
-    - theme: alt
       text: View Framework on GitHub
       link: https://github.com/afteracademy/goserve
 
@@ -44,10 +41,20 @@ features:
   - icon: 🚀
     title: Example Projects
     details: Complete example implementations to get you started quickly
-  - icon: 🌐
-    title: Microservices Ready
-    details: gomicro extension for distributed systems with Kong API gateway and NATS messaging
 ---
+
+## 📚 Documentation
+
+### Getting Started
+- **[Installation](/installation)** - Install goserve and set up your project
+- **[Getting Started](/getting-started)** - Quick start guide with examples
+- **[PostgreSQL Example](/postgres/)** - Complete REST API implementation
+
+### Framework Guide
+- **[Architecture](/architecture)** - Framework architecture and design patterns
+- **[Core Concepts](/core-concepts)** - Controllers, services, DTOs, and patterns
+- **[Configuration](/configuration)** - Environment setup and configuration options
+
 
 ## What is goserve?
 
@@ -77,8 +84,7 @@ goserve is built with industry-standard Go libraries:
 Learn by example with complete, production-ready implementations:
 
 1. **[goserve-example-api-server-postgres](/postgres/)** - Complete REST API with PostgreSQL, Redis, and JWT authentication
-2. **[gomicro](/gomicro/)** - Microservices architecture with Kong API gateway, NATS messaging, and service discovery
-3. **goserve-example-api-server-mongo** - MongoDB-based example implementation
+2. **goserve-example-api-server-mongo** - MongoDB-based example implementation
 
 ## Quick Start
 
@@ -101,6 +107,14 @@ curl http://localhost:8080/health
 ```
 
 See the [PostgreSQL Example Documentation](/postgres/) for detailed setup and usage.
+
+### Learn More
+
+Ready to dive deeper? Check out our comprehensive documentation:
+
+- **[Framework Architecture](/architecture)** - Understand goserve's layered design
+- **[Core Concepts](/core-concepts)** - Master controllers, services, and DTOs
+- **[Configuration Guide](/configuration)** - Set up your development environment
 
 ## Why Choose goserve?
 

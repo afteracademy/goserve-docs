@@ -4,7 +4,7 @@ Get up and running with the goserve framework in minutes.
 
 ## What is goserve?
 
-**goserve** is a robust Go backend architecture framework that provides a performant and scalable foundation for building REST APIs. It emphasizes feature separation, clean code, testability, and includes built-in JWT authentication, role-based authorization, and microservices capabilities through the gomicro extension.
+**goserve** is a robust Go backend architecture framework that provides a performant and scalable foundation for building REST APIs. It emphasizes feature separation, clean code, and testability with built-in JWT authentication and role-based authorization.
 
 ## Prerequisites
 
@@ -146,9 +146,6 @@ goserve provides several key components organized in a layered architecture:
 - **Password Hashing** - bcrypt-based security
 
 ### Microservices Extensions
-- **gomicro Framework** - Distributed system support
-- **Kong Integration** - API gateway routing
-- **NATS Messaging** - Inter-service communication
 - **Service Discovery** - Automatic service registration
 
 ## Example Projects
@@ -156,7 +153,7 @@ goserve provides several key components organized in a layered architecture:
 The best way to learn goserve is through example projects:
 
 1. **[PostgreSQL Example](/postgres/)** - Complete REST API with PostgreSQL, Redis, JWT authentication, role-based authorization, and comprehensive testing
-2. **gomicro** - Microservices extension with Kong API gateway, NATS messaging, and service discovery
+2. **goserve-example-api-server-mongo** - MongoDB-based example implementation
 3. **MongoDB Example** - MongoDB-based implementation (available in main repository)
 
 ## Your First Feature
@@ -463,7 +460,6 @@ curl http://localhost:8080/hello
 - **Learn Core Concepts**: Explore [Core Concepts](/core-concepts) for JWT auth, services, DTOs, and caching
 - **See a Complete Example**: Check out the [PostgreSQL Example](/postgres/) with full authentication and blog features
 - **Configure Your Setup**: Review [Configuration](/configuration) for environment variables and database setup
-- **Explore Microservices**: Learn about [gomicro](/gomicro/) for distributed system architecture
 
 ## Need Help?
 

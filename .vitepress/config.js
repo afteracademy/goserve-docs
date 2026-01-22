@@ -9,8 +9,8 @@ export default defineConfig({
     
     nav: [
       { text: 'Home', link: '/' },
-      { 
-        text: 'PostgreSQL Example', 
+      {
+        text: 'PostgreSQL Example',
         link: '/postgres/',
         activeMatch: '/postgres/'
       },

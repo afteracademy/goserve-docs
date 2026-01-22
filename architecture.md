@@ -12,7 +12,7 @@ goserve is built on a **layered, feature-based architecture** that promotes clea
 2. **Service Sharing** - Common services can be shared across features while maintaining independence
 3. **Layered Architecture** - Clear separation between Controllers, Services, Models, and DTOs
 4. **Testability** - Architecture supports easy unit and integration testing
-5. **Microservices Ready** - Extensible to microservices architecture with Kong, NATS, and service discovery
+5. **Scalable Architecture** - Modular design supports scaling and extension
 6. **Authentication & Authorization** - Built-in JWT authentication and role-based authorization
 
 ## Framework Structure
@@ -228,14 +228,14 @@ func (m *authenticationProvider) Middleware() gin.HandlerFunc {
 For service-to-service communication and external API access:
 
 **Key Components**:
-- Kong API Gateway integration
+- Extensible middleware system
 - Custom apikey-auth plugin
 - Service-level API key validation
 - Rate limiting and access control
 
 **Request Flow**:
 ```
-Client Request → Kong Gateway → apikey-auth-plugin → auth-service → Target Service
+Client Request → Middleware Chain → Controller → Service → Database
 ```
 
 ### Role-Based Authorization Pattern
@@ -295,7 +295,7 @@ HTTP Request
     ↓
 Root Middleware (Global)
 ├── Error Catcher
-├── API Key Validation (Kong)
+├── Request Validation
 └── Not Found Handler
     ↓
 Router (Gin)
@@ -505,40 +505,10 @@ Built-in support for testing:
 - Mock generators
 - Integration test helpers
 
-## Microservices Capabilities
+## Microservices Support
 
-goserve extends to microservices through the **gomicro** framework:
+goserve's modular architecture supports scaling to larger applications through service extraction and component reuse.
 
-### gomicro Architecture
-
-```
-Kong API Gateway
-    ↓
-[auth-service] ←→ NATS Messaging ←→ [blog-service]
-    ↓                                       ↓
-PostgreSQL + Redis                  PostgreSQL + Redis
-```
-
-### Key Components
-
-**Kong API Gateway**: Routes requests and handles authentication
-**NATS**: Inter-service communication and event streaming
-**Service Mesh**: Independent services with shared authentication
-**Docker Orchestration**: Container-based deployment
-
-### Service Communication
-
-```go
-// Service-to-service via NATS
-func (s *blogService) publishBlogCreated(blog *model.Blog) error {
-    return s.natsClient.Publish("blog.created", blog)
-}
-
-// Auth service validation
-func (s *authService) validateAPIKey(apiKey string) (*model.APIKey, error) {
-    return s.repository.FindByKey(apiKey)
-}
-```
 
 ## Performance Considerations
 
@@ -580,4 +550,3 @@ func TestIntegration_CreateBlog(t *testing.T) {
 - Learn about [Core Concepts](/core-concepts) for detailed implementation patterns
 - See [Configuration](/configuration) for environment setup
 - Check the [PostgreSQL Example](/postgres/) for a complete implementation
-- Explore [gomicro](/gomicro/) for microservices patterns

@@ -57,44 +57,10 @@ goserve-example-api-server-postgres/
 └── Dockerfile            # Container image
 ```
 
-## gomicro Extension
 
-This project serves as the foundation for the **gomicro microservices framework**, which extends goserve to a distributed architecture:
 
-### gomicro Architecture
-
-```
-Kong API Gateway (Port 8000)
-        ↓
-   ┌─────────────┐    NATS    ┌─────────────┐
-   │ auth-service│◄─────────►│ blog-service│
-   │   (Port 8001)│           │  (Port 8002)│
-   └─────────────┘            └─────────────┘
-        ↓                           ↓
-   PostgreSQL + Redis         PostgreSQL + Redis
-```
-
-### Key gomicro Features
-
-- **API Gateway**: Kong routes requests to appropriate services
-- **Inter-Service Communication**: NATS messaging for service coordination
-- **Service Discovery**: Automatic service registration and discovery
-- **Independent Scaling**: Each service scales independently
-- **Technology Diversity**: Services can use different tech stacks
-
-### Service Communication Patterns
 
 ```go
-// API Key validation via Kong
-GET /api/blog/posts
-    ↓ Kong calls auth-service
-http://auth:8000/verify/apikey
-    ↓ Auth service validates API key
-    ↓ Kong routes to blog-service
-
-// Inter-service events via NATS
-auth-service publishes: "user.created"
-blog-service subscribes and updates blog authors
 ```
 
 ## Application Flow
@@ -173,7 +139,7 @@ Service Layer (Business Logic)
 ├── Database Operations - CRUD operations with transactions
 ├── Cache Operations - Redis cache get/set/invalidate
 ├── External Service Calls - API calls to other services
-└── Event Publishing - NATS messages for microservices
+└── Event Publishing - Send events for system integration
   ↓
 Database/External Services
   ↓
@@ -210,7 +176,7 @@ While features are independent, they share common services:
 
 ### 3. API Key + JWT Dual Authentication
 The system supports two authentication methods:
-- **API Keys** - For external services and microservices communication
+- **API Keys** - For external services and system integration
 - **JWT Tokens** - For user authentication with RSA signing
 
 ### 4. Role-Based Authorization
@@ -477,7 +443,7 @@ func (s *service) PublishBlog(id uuid.UUID, userID uuid.UUID) (*dto.BlogPublic, 
     // Invalidate cache
     s.cache.Delete(id.String())
 
-    // Publish event for microservices (if using gomicro)
+    // Publish event for system integration
     // s.publishBlogPublishedEvent(blog)
 
     return s.convertToPublicDTO(blog), nil
