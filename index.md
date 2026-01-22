@@ -6,7 +6,7 @@ hero:
   text: "Go Backend Architecture"
   tagline: A robust, performant, and scalable framework emphasizing feature separation, clean code, and testability
   image:
-    src: /hero-image.svg
+    src: https://afteracademy.com/_next/static/media/mascot.a7e3d8af.svg
     alt: goserve
   actions:
     - theme: brand
