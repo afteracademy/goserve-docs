@@ -955,7 +955,6 @@ Use the provided examples in [Getting Started](/getting-started) to test endpoin
 ## Related
 
 - [Getting Started](/getting-started) - Quick start with cURL examples
-- [Examples](/examples) - Real-world usage scenarios
 - [Core Concepts](/core-concepts) - Understand the architecture
 - [Authentication](/core-concepts#authentication-jwt-with-rsa) - JWT implementation details
 - [Authorization](/core-concepts#authorization-rbac) - Role-based access control

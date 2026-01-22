@@ -834,6 +834,6 @@ func TestIntegration_CreateBlog(t *testing.T) {
 
 ## Next Steps
 
-- Understand [Core Concepts](/core-concepts) in depth
-- Learn about [Configuration](/configuration) options
-- Explore [API Reference](/api-reference)
+- Understand [Core Concepts](/postgres/core-concepts) in depth
+- Learn about [Configuration](/postgres/configuration) options
+- Explore [API Reference](/postgres/api-reference) for complete documentation
