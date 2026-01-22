@@ -21,9 +21,25 @@ export default defineConfig({
     sidebar: {
       '/': [
         {
-          text: 'Home',
+          text: 'Introduction',
           items: [
-            { text: 'Overview', link: '/' }
+            { text: 'Overview', link: '/' },
+            { text: 'Getting Started', link: '/getting-started' },
+            { text: 'Installation', link: '/installation' }
+          ]
+        },
+        {
+          text: 'Framework Guide',
+          items: [
+            { text: 'Framework Architecture', link: '/architecture' },
+            { text: 'Core Concepts', link: '/core-concepts' },
+            { text: 'Configuration', link: '/configuration' }
+          ]
+        },
+        {
+          text: 'Examples',
+          items: [
+            { text: 'PostgreSQL Example', link: '/postgres/' }
           ]
         }
       ],
