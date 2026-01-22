@@ -4,149 +4,481 @@ Understanding the goserve framework architecture and design patterns.
 
 ## Overview
 
-goserve is built on a **modular, feature-based architecture** that promotes clean code, separation of concerns, and testability. The framework provides a solid foundation while giving you flexibility to structure your application as needed.
+goserve is built on a **layered, feature-based architecture** that promotes clean code, separation of concerns, and testability. The framework emphasizes each API being independent while sharing common services, reducing code conflicts in team environments.
 
 ## Core Principles
 
-1. **Modularity** - Components are organized into clear, reusable modules
-2. **Separation of Concerns** - Network, database, and business logic are clearly separated
-3. **Testability** - Architecture supports easy unit and integration testing
-4. **Flexibility** - Use only the components you need
-5. **Performance** - Built on high-performance Go libraries
+1. **Feature Independence** - Each API feature is organized in separate directories by endpoint
+2. **Service Sharing** - Common services can be shared across features while maintaining independence
+3. **Layered Architecture** - Clear separation between Controllers, Services, Models, and DTOs
+4. **Testability** - Architecture supports easy unit and integration testing
+5. **Microservices Ready** - Extensible to microservices architecture with Kong, NATS, and service discovery
+6. **Authentication & Authorization** - Built-in JWT authentication and role-based authorization
 
 ## Framework Structure
 
 ```
 goserve/
-├── network/          # HTTP networking layer
-│   ├── controller.go
-│   ├── middleware.go
-│   └── router.go
-├── postgres/         # PostgreSQL support
-│   ├── connection.go
-│   ├── pool.go
-│   └── utilities.go
-├── mongo/            # MongoDB support
-│   ├── client.go
-│   └── utilities.go
-├── redis/            # Redis support
-│   ├── client.go
-│   └── cache.go
-├── middleware/       # Built-in middleware
-│   ├── auth.go
-│   ├── cors.go
-│   └── logger.go
-├── dto/              # Data Transfer Objects
-├── utility/           # Utility functions
-└── micro/            # Microservice patterns
+├── api/                    # Feature-based API modules
+│   ├── auth/              # Authentication endpoints
+│   │   ├── dto/           # Request/Response DTOs
+│   │   ├── model/         # Database models
+│   │   ├── controller.go  # HTTP handlers
+│   │   ├── service.go     # Business logic
+│   │   └── middleware/    # Auth middleware
+│   └── blog/              # Blog feature
+│       ├── dto/
+│       ├── model/
+│       ├── controller.go
+│       └── service.go
+├── cmd/                   # Application entry points
+│   └── main.go           # Main application
+├── common/                # Shared utilities
+├── config/                # Configuration management
+├── startup/               # Server initialization
+│   ├── server.go         # HTTP server setup
+│   ├── module.go         # Dependency injection
+│   └── testserver.go     # Test server utilities
+├── network/               # HTTP networking layer
+│   ├── controller.go     # Base controller interface
+│   ├── middleware.go     # Authentication/Authorization
+│   └── router.go         # Route management
+├── postgres/              # PostgreSQL support
+│   ├── connection.go     # Connection pooling
+│   ├── pool.go           # Pool management
+│   └── utilities.go      # Query helpers
+├── mongo/                 # MongoDB support
+├── redis/                 # Redis caching
+├── middleware/            # Built-in middleware
+│   ├── auth.go           # JWT authentication
+│   ├── cors.go           # CORS handling
+│   └── logger.go         # Request logging
+├── dto/                   # Shared DTOs
+├── utility/               # Utility functions
+├── micro/                 # Microservice patterns
+└── keys/                  # RSA keys for JWT
 ```
 
-## Component Architecture
+## Layered Architecture Pattern
 
-### Network Layer
+goserve follows a **4-layer architecture** pattern that separates concerns while maintaining clean dependencies:
 
-The network layer provides HTTP handling capabilities:
+### 1. Controller Layer (Network Layer)
 
-- **Controllers** - Base controller interface for handling HTTP requests
-- **Middleware** - Authentication, authorization, logging, and custom middleware
-- **Routing** - Clean route management and mounting
+Handles HTTP requests and responses, acts as the entry point:
 
-### Database Layer
+**Location**: `api/[feature]/controller.go`
 
-Support for multiple database backends:
+**Responsibilities**:
+- Route definition and mounting
+- Request parsing and validation
+- Response formatting
+- HTTP-specific logic handling
+- Error response formatting
 
-- **PostgreSQL** - Using pgx with connection pooling
-- **MongoDB** - Official MongoDB driver
-- **Redis** - Caching and session storage
+**Key Pattern**:
+```go
+type controller struct {
+    network.Controller
+    common.ContextPayload
+    service Service
+}
 
-### Middleware System
+func (c *controller) createHandler(ctx *gin.Context) {
+    body, err := network.ReqBody[dto.CreateRequest](ctx)
+    if err != nil {
+        network.SendBadRequestError(ctx, err.Error(), err)
+        return
+    }
 
-Built-in middleware for common needs:
+    result, err := c.service.Create(body)
+    if err != nil {
+        network.SendMixedError(ctx, err)
+        return
+    }
 
-- **Authentication** - JWT and token-based auth
-- **Authorization** - Role-based access control
-- **CORS** - Cross-origin resource sharing
-- **Logging** - Request/response logging
-- **Validation** - Request validation
+    network.SendSuccessDataResponse(ctx, "success", result)
+}
+```
+
+### 2. Service Layer (Business Logic)
+
+Contains business logic and orchestrates between controllers and repositories:
+
+**Location**: `api/[feature]/service.go`
+
+**Responsibilities**:
+- Business rule enforcement
+- Data transformation and validation
+- Database operations coordination
+- Cache management
+- External service integration
+
+**Key Pattern**:
+```go
+type service struct {
+    db    *pgxpool.Pool
+    cache redis.Cache[dto.EntityCache]
+}
+
+func (s *service) Create(dto *dto.CreateRequest) (*model.Entity, error) {
+    // Business logic validation
+    // Database operations
+    // Cache invalidation
+    // Return result
+}
+```
+
+### 3. Model Layer (Data Entities)
+
+Defines database schema and internal data structures:
+
+**Location**: `api/[feature]/model/[entity].go`
+
+**Responsibilities**:
+- Database table representation
+- Data type definitions
+- Field mapping documentation
+- Internal domain entities
+
+**Key Pattern**:
+```go
+type Blog struct {
+    ID          uuid.UUID   // id
+    Title       string      // title
+    Description string      // description
+    Text        *string     // text
+    AuthorID    uuid.UUID   // author_id
+    Status      bool        // status
+    CreatedAt   time.Time   // created_at
+    UpdatedAt   time.Time   // updated_at
+}
+```
+
+### 4. DTO Layer (Data Transfer Objects)
+
+Defines request/response contracts and API boundaries:
+
+**Location**: `api/[feature]/dto/[operation].go`
+
+**Responsibilities**:
+- Input validation and sanitization
+- Output formatting and filtering
+- API contract documentation
+- Sensitive data hiding
+
+**Key Pattern**:
+```go
+type BlogCreate struct {
+    Title       string   `json:"title" validate:"required,min=3,max=500"`
+    Description string   `json:"description" validate:"required,min=3,max=2000"`
+    DraftText   string   `json:"draftText" validate:"required,max=50000"`
+    Tags        []string `json:"tags" validate:"required,min=1,dive,uppercase"`
+}
+
+type BlogPublic struct {
+    ID          uuid.UUID  `json:"id"`
+    Title       string     `json:"title"`
+    Description string     `json:"description"`
+    Tags        []string   `json:"tags"`
+    Author      *UserInfo  `json:"author"`
+    PublishedAt time.Time  `json:"publishedAt"`
+}
+```
 
 ## Design Patterns
 
-### Controller Pattern
+### JWT Authentication Pattern
 
-Controllers handle HTTP requests and delegate to services:
+goserve implements JWT-based authentication with RSA key pairs:
 
+**Key Components**:
+- RSA public/private key pairs for token signing
+- JWT middleware for token validation
+- Claims extraction and user context setting
+- Refresh token support
+
+**Implementation**:
 ```go
-type Controller interface {
-    MountRoutes(router *gin.Engine)
+// Authentication middleware extracts and validates JWT
+func (m *authenticationProvider) Middleware() gin.HandlerFunc {
+    return func(ctx *gin.Context) {
+        token := utils.ExtractBearerToken(ctx.GetHeader("Authorization"))
+
+        claims, err := m.authService.VerifyToken(token)
+        if err != nil {
+            network.SendUnauthorizedError(ctx, err.Error(), err)
+            return
+        }
+
+        user, err := m.userService.FetchUserById(claims.Subject)
+        if err != nil {
+            network.SendUnauthorizedError(ctx, "User not found", err)
+            return
+        }
+
+        m.SetUser(ctx, user)
+        ctx.Next()
+    }
 }
 ```
 
-### Service Pattern
+### API Key Authentication Pattern
 
-Services contain business logic:
+For service-to-service communication and external API access:
+
+**Key Components**:
+- Kong API Gateway integration
+- Custom apikey-auth plugin
+- Service-level API key validation
+- Rate limiting and access control
+
+**Request Flow**:
+```
+Client Request → Kong Gateway → apikey-auth-plugin → auth-service → Target Service
+```
+
+### Role-Based Authorization Pattern
+
+Implements hierarchical permission system:
 
 ```go
-type Service interface {
-    // Business logic methods
+// Authorization middleware checks user roles
+func (m *authorizationProvider) Middleware(requiredRoles ...string) gin.HandlerFunc {
+    return func(ctx *gin.Context) {
+        user := m.GetUser(ctx)
+        if user == nil {
+            network.SendUnauthorizedError(ctx, "User not authenticated", nil)
+            return
+        }
+
+        if !m.hasRequiredRole(user, requiredRoles) {
+            network.SendForbiddenError(ctx, "Insufficient permissions", nil)
+            return
+        }
+
+        ctx.Next()
+    }
 }
 ```
 
-### Repository Pattern
+### Cache-Aside Pattern
 
-Data access is abstracted through repositories:
+Implements intelligent caching with database fallbacks:
 
 ```go
-type Repository interface {
-    // Data access methods
+func (s *service) GetBlogById(id uuid.UUID) (*dto.BlogPublic, error) {
+    // Try cache first
+    cached, err := s.cache.Get(id.String())
+    if err == nil {
+        return cached, nil
+    }
+
+    // Query database
+    blog, err := s.GetPublishedBlogById(id)
+    if err != nil {
+        return nil, err
+    }
+
+    // Update cache
+    s.cache.Set(id.String(), blog, time.Hour)
+    return blog, nil
 }
 ```
 
 ## Request Flow
 
+### Complete Request Lifecycle
+
 ```
 HTTP Request
     ↓
+Root Middleware (Global)
+├── Error Catcher
+├── API Key Validation (Kong)
+└── Not Found Handler
+    ↓
 Router (Gin)
     ↓
-Middleware Chain
+Feature Route Group (/api/blog)
     ↓
-Controller
+Authentication Middleware (JWT)
+├── Extract Bearer Token
+├── Verify RSA Signature
+├── Validate Claims & Expiry
+├── Load User from Database
+└── Set User Context
     ↓
-Service (Business Logic)
+Authorization Middleware (Roles)
+├── Check User Permissions
+├── Validate Required Roles
+└── Allow/Deny Access
     ↓
-Repository (Data Access)
+Controller Handler
+├── Parse Request Body (DTO)
+├── Validate Input
+└── Call Service Method
     ↓
-Database
+Service Layer (Business Logic)
+├── Business Rule Validation
+├── Database Operations
+├── Cache Management
+└── External Service Calls
     ↓
-Response
+Repository Layer (Data Access)
+├── Query Construction
+├── Parameter Binding
+└── Result Mapping
+    ↓
+Database/External Services
+    ↓
+Response Formatting
+├── Success (200-299)
+├── Client Error (400-499)
+└── Server Error (500-599)
 ```
+
+### Middleware Chain Details
+
+**Global Middleware** (applied to all routes):
+- Error recovery and logging
+- CORS headers
+- Request ID generation
+- Rate limiting
+
+**Authentication Middleware** (protected routes):
+- JWT token extraction and validation
+- User context loading
+- Session management
+
+**Authorization Middleware** (role-protected routes):
+- Permission checking
+- Role validation
+- Access control
+
+**Feature Middleware** (feature-specific):
+- Input validation
+- Custom business rules
+- Audit logging
 
 ## Feature-Based Organization
 
-Recommended project structure:
+goserve organizes code by **business features** rather than technical layers, making it easier for teams to work independently:
+
+### Recommended Project Structure
 
 ```
 your-project/
-├── api/                    # API features
-│   ├── auth/              # Authentication feature
-│   │   ├── controller.go
-│   │   ├── service.go
-│   │   ├── repository.go
-│   │   └── dto/
-│   ├── users/             # User feature
-│   └── products/          # Product feature
-├── common/                # Shared code
-├── config/                # Configuration
-└── cmd/                   # Application entry
+├── api/                    # Feature-based API modules
+│   ├── auth/              # Authentication & user management
+│   │   ├── dto/           # Login, signup, token DTOs
+│   │   ├── model/         # User model
+│   │   ├── controller.go  # /auth/* endpoints
+│   │   ├── service.go     # Auth business logic
+│   │   └── middleware/    # Auth-specific middleware
+│   ├── blog/              # Blog management feature
+│   │   ├── author/        # Author-specific endpoints (/blog/author/*)
+│   │   ├── editor/        # Editor-specific endpoints (/blog/editor/*)
+│   │   ├── dto/           # Blog DTOs (shared)
+│   │   ├── model/         # Blog models (shared)
+│   │   ├── controller.go  # /blog endpoints
+│   │   └── service.go     # Blog business logic
+│   ├── blogs/             # Public blog listing (/blogs/*)
+│   │   ├── dto/           # Public blog DTOs
+│   │   ├── controller.go  # Public endpoints
+│   │   └── service.go     # Public blog service
+│   └── contact/           # Contact form feature
+│       ├── dto/           # Contact DTOs
+│       ├── controller.go  # /contact endpoints
+│       └── service.go     # Contact handling
+├── cmd/                   # Application entry points
+│   └── main.go           # Main application
+├── common/                # Shared utilities
+│   └── payload.go        # Request context helpers
+├── config/                # Configuration management
+│   └── env.go            # Environment variables
+├── startup/               # Server initialization
+│   ├── server.go         # HTTP server setup
+│   ├── module.go         # Dependency injection container
+│   └── testserver.go     # Test server utilities
+├── tests/                 # Integration tests
+├── utils/                 # Utility functions
+├── keys/                  # RSA keys for JWT
+├── .tools/                # Code generation tools
+└── docker-compose.yml     # Docker orchestration
 ```
 
-## Dependency Injection
+### Feature Organization Principles
 
-goserve supports dependency injection patterns:
+**Independent Features**: Each feature is self-contained with its own directory:
+```
+api/auth/     # Complete auth feature
+api/blog/     # Blog management
+api/blogs/    # Public blog access
+```
 
-- Constructor injection
-- Interface-based design
-- Easy mocking for tests
+**Shared Resources**: Related features can share models and DTOs:
+```
+api/blog/
+├── dto/      # Shared between author/editor features
+├── model/    # Shared database models
+└── service.go # Shared business logic
+```
+
+**Clear Boundaries**: Features communicate through well-defined interfaces, not direct dependencies.
+
+## Dependency Injection & Module System
+
+goserve uses a **module-based dependency injection** system that wires all components together:
+
+### Module Pattern
+
+The `startup/module.go` implements clean dependency injection:
+
+```go
+type Module interface {
+    GetInstance() *module
+    Controllers() []network.Controller
+    RootMiddlewares() []network.RootMiddleware
+    AuthenticationProvider() network.AuthenticationProvider
+    AuthorizationProvider() network.AuthorizationProvider
+}
+
+type module struct {
+    Context     context.Context
+    Env         *config.Env
+    DB          postgres.Database
+    Store       redis.Store
+    UserService user.Service
+    AuthService auth.Service
+    BlogService blog.Service
+}
+
+// Dependency wiring
+func NewModule(ctx context.Context, env *config.Env, db postgres.Database, store redis.Store) Module {
+    // Initialize services with dependencies
+    userService := user.NewService(db.Pool())
+    authService := auth.NewService(db.Pool(), env, userService)
+    blogService := blog.NewService(db.Pool(), store, userService)
+
+    return &module{
+        Context:     ctx,
+        Env:         env,
+        DB:          db,
+        Store:       store,
+        UserService: userService,
+        AuthService: authService,
+        BlogService: blogService,
+    }
+}
+```
+
+### Benefits
+
+- **Clean Architecture**: Clear component relationships
+- **Testability**: Easy mocking of dependencies
+- **Flexibility**: Easy to swap implementations
+- **Maintainability**: Centralized dependency management
 
 ## Error Handling
 
@@ -173,15 +505,79 @@ Built-in support for testing:
 - Mock generators
 - Integration test helpers
 
+## Microservices Capabilities
+
+goserve extends to microservices through the **gomicro** framework:
+
+### gomicro Architecture
+
+```
+Kong API Gateway
+    ↓
+[auth-service] ←→ NATS Messaging ←→ [blog-service]
+    ↓                                       ↓
+PostgreSQL + Redis                  PostgreSQL + Redis
+```
+
+### Key Components
+
+**Kong API Gateway**: Routes requests and handles authentication
+**NATS**: Inter-service communication and event streaming
+**Service Mesh**: Independent services with shared authentication
+**Docker Orchestration**: Container-based deployment
+
+### Service Communication
+
+```go
+// Service-to-service via NATS
+func (s *blogService) publishBlogCreated(blog *model.Blog) error {
+    return s.natsClient.Publish("blog.created", blog)
+}
+
+// Auth service validation
+func (s *authService) validateAPIKey(apiKey string) (*model.APIKey, error) {
+    return s.repository.FindByKey(apiKey)
+}
+```
+
 ## Performance Considerations
 
-- Connection pooling for databases
-- Efficient routing
-- Minimal overhead
-- Optimized for high throughput
+- **Connection Pooling**: Optimized database connections
+- **Caching Strategy**: Redis integration with cache-aside pattern
+- **Efficient Routing**: Gin-based routing with minimal overhead
+- **Horizontal Scaling**: Stateless services ready for scaling
+
+## Testing Architecture
+
+goserve supports comprehensive testing at all levels:
+
+### Unit Tests
+```go
+func TestAuthController_SignupSuccess(t *testing.T) {
+    mockService := new(auth.MockService)
+    mockService.On("SignUpBasic", mock.Anything).Return(&dto.UserAuth{}, nil)
+
+    controller := auth.NewController(nil, nil, mockService)
+    // Test controller logic
+}
+```
+
+### Integration Tests
+```go
+func TestIntegration_CreateBlog(t *testing.T) {
+    router, module, teardown := startup.TestServer()
+    defer teardown()
+
+    token := createTestUser(t, router)
+    response := makeRequest(t, router, "POST", "/blog/author", token, body)
+
+    assert.Equal(t, 200, response.StatusCode)
+}
+```
 
 ## Next Steps
 
-- Learn about [Core Concepts](/core-concepts) for detailed patterns
-- See [Configuration](/configuration) for setup details
+- Learn about [Core Concepts](/core-concepts) for detailed implementation patterns
+- See [Configuration](/configuration) for environment setup
 - Check the [PostgreSQL Example](/postgres/) for a complete implementation
+- Explore [gomicro](/gomicro/) for microservices patterns

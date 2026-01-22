@@ -4,7 +4,7 @@ Configure the goserve framework components for your application.
 
 ## Overview
 
-goserve uses a flexible configuration system that supports environment variables, configuration files, and programmatic setup. The framework components can be configured independently based on your needs.
+goserve uses a comprehensive configuration system that supports environment variables, configuration files, and type-safe configuration structs. The framework is designed for production deployments with secure credential management, database connection pooling, and microservices-ready settings.
 
 ## Network Configuration
 
@@ -49,51 +49,112 @@ controller := network.NewController(
 
 ## PostgreSQL Configuration
 
-### Connection Pool Setup
+### PostgreSQL Configuration (Production-Ready)
+
+goserve uses advanced PostgreSQL configuration with connection pooling, health checks, and timeout management:
 
 ```go
 import "github.com/afteracademy/goserve/postgres"
 
 type PostgresConfig struct {
-    Host     string
-    Port     int
-    Database string
-    User     string
-    Password string
-    MaxConns int
-    MinConns int
+    User        string        // Database user
+    Pwd         string        // Database password
+    Host        string        // Database host
+    Port        string        // Database port
+    Name        string        // Database name
+    MinPoolSize int           // Minimum pool size
+    MaxPoolSize int           // Maximum pool size
+    Timeout     time.Duration // Query timeout
 }
 
 config := PostgresConfig{
-    Host:     "localhost",
-    Port:     5432,
-    Database: "mydb",
-    User:     "user",
-    Password: "password",
-    MaxConns: 25,
-    MinConns: 5,
+    User:        "myuser",
+    Pwd:         "secure_password",
+    Host:        "localhost",
+    Port:        "5432",
+    Name:        "goserve_db",
+    MinPoolSize: 5,
+    MaxPoolSize: 25,
+    Timeout:     30 * time.Second,
 }
 
-pool, err := postgres.NewConnectionPool(config)
-if err != nil {
-    log.Fatal(err)
-}
-defer pool.Close()
+db := postgres.NewDatabase(context.Background(), config)
+db.Connect()
+defer db.Close()
+
+// Get the connection pool for services
+pool := db.Pool()
 ```
 
-### Environment Variables
+### Environment Variables (Complete Set)
 
 ```bash
-# PostgreSQL Configuration
+# ===========================================
+# DATABASE CONFIGURATION
+# ===========================================
+DB_USER=myuser
+DB_USER_PWD=secure_password_here
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=mydb
-DB_USER=user
-DB_PASSWORD=password
-DB_MAX_CONNECTIONS=25
-DB_MIN_CONNECTIONS=5
-DB_MAX_CONN_LIFETIME=300s
-DB_MAX_CONN_IDLE_TIME=30s
+DB_NAME=goserve_db
+DB_MIN_POOL_SIZE=5
+DB_MAX_POOL_SIZE=25
+DB_QUERY_TIMEOUT=30s
+
+# ===========================================
+# REDIS CONFIGURATION
+# ===========================================
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
+
+# ===========================================
+# JWT CONFIGURATION
+# ===========================================
+JWT_SECRET_KEY_PATH=keys/jwtRS256.key
+JWT_PUBLIC_KEY_PATH=keys/jwtRS256.key.pub
+JWT_ACCESS_TOKEN_EXPIRY_MINUTES=15
+JWT_REFRESH_TOKEN_EXPIRY_HOURS=24
+
+# ===========================================
+# SERVER CONFIGURATION
+# ===========================================
+SERVER_HOST=0.0.0.0
+SERVER_PORT=8000
+GO_ENV=production
+LOG_LEVEL=info
+
+# ===========================================
+# CACHE CONFIGURATION
+# ===========================================
+BLOG_CACHE_TTL_MINUTES=60
+USER_CACHE_TTL_MINUTES=30
+
+# ===========================================
+# EMAIL CONFIGURATION (for notifications)
+# ===========================================
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+FROM_EMAIL=noreply@yourapp.com
+
+# ===========================================
+# API CONFIGURATION
+# ===========================================
+API_BASE_URL=https://api.yourapp.com
+API_VERSION=v1
+CORS_ALLOWED_ORIGINS=https://yourapp.com,https://app.yourapp.com
+RATE_LIMIT_REQUESTS_PER_MINUTE=100
+
+# ===========================================
+# MICROSERVICES CONFIGURATION (for gomicro)
+# ===========================================
+NATS_URL=nats://localhost:4222
+KONG_ADMIN_URL=http://localhost:8001
+SERVICE_NAME=blog-service
+SERVICE_PORT=8002
 ```
 
 ### Connection Pool Options
@@ -140,27 +201,38 @@ MONGO_MIN_POOL_SIZE=10
 
 ## Redis Configuration
 
-### Client Setup
+### Redis Configuration with Type-Safe Caching
+
+goserve provides Redis integration with connection pooling and type-safe generic caching:
 
 ```go
 import "github.com/afteracademy/goserve/redis"
 
-type RedisConfig struct {
-    Host     string
-    Port     int
-    Password string
-    DB       int
-}
-
-config := RedisConfig{
-    Host:     "localhost",
-    Port:     6379,
+// Redis store for connection management
+store := redis.NewStore(&redis.Options{
+    Addr:     "localhost:6379",
     Password: "", // Optional
     DB:       0,
+})
+
+// Type-safe cache for specific data types
+type BlogCache struct {
+    ID          uuid.UUID `json:"id"`
+    Title       string    `json:"title"`
+    Slug        string    `json:"slug"`
+    PublishedAt time.Time `json:"publishedAt"`
 }
 
-client := redis.NewClient(config)
-defer client.Close()
+blogCache := redis.NewCache[BlogCache](store)
+
+// Usage in services
+func (s *service) getBlogCache(id uuid.UUID) (*BlogCache, error) {
+    return s.blogCache.Get(id.String())
+}
+
+func (s *service) setBlogCache(id uuid.UUID, data *BlogCache) error {
+    return s.blogCache.Set(id.String(), data, time.Hour)
+}
 ```
 
 ### Environment Variables
@@ -173,30 +245,83 @@ REDIS_PASSWORD=
 REDIS_DB=0
 REDIS_POOL_SIZE=10
 REDIS_MIN_IDLE_CONNS=5
+REDIS_MAX_CONN_AGE=30m
+REDIS_IDLE_TIMEOUT=5m
 ```
 
 ## Middleware Configuration
 
-### Authentication Middleware
+### JWT Authentication with RSA Keys
+
+goserve uses RSA key pairs for secure JWT authentication:
 
 ```go
-import "github.com/afteracademy/goserve/middleware"
+import "github.com/afteracademy/goserve/network"
 
-// JWT Authentication
-authProvider := middleware.NewJWTProvider(
-    middleware.JWTConfig{
-        SecretKey:     "your-secret-key",
-        SigningMethod: "HS256",
-        TokenExpiry:   time.Hour * 24,
-    },
-)
+// Authentication provider with RSA keys
+authProvider := &authenticationProvider{
+    common.ContextPayload{},
+    authService,
+    userService,
+}
 
-// Use in controller
+// Authorization provider with role checking
+authorizeProvider := &authorizationProvider{
+    common.ContextPayload{},
+}
+
+// Create controller with both auth providers
 controller := network.NewController(
-    "/api",
+    "/api/blog",
     authProvider,
-    nil,
+    authorizeProvider,
 )
+
+// Use in route mounting
+func (c *controller) MountRoutes(group *gin.RouterGroup) {
+    // Public routes
+    group.GET("/public", c.getPublicBlogs)
+
+    // Authenticated routes
+    protected := group.Group("/")
+    protected.Use(c.AuthProvider.Middleware())
+    {
+        protected.POST("/", c.createBlog)
+
+        // Role-based routes
+        author := protected.Group("/author")
+        author.Use(c.AuthorizeProvider.RequireRole("author", "admin"))
+        {
+            author.POST("/", c.createBlog)
+        }
+    }
+}
+```
+
+### RSA Key Generation for JWT
+
+```bash
+# Generate RSA key pair for JWT signing
+go run .tools/rsa/main.go
+
+# This creates:
+# - keys/jwtRS256.key (private key)
+# - keys/jwtRS256.key.pub (public key)
+```
+
+### JWT Configuration
+
+```go
+// JWT service configuration
+jwtConfig := &auth.JWTConfig{
+    PrivateKeyPath:    "keys/jwtRS256.key",
+    PublicKeyPath:     "keys/jwtRS256.key.pub",
+    AccessExpiry:      15 * time.Minute,
+    RefreshExpiry:     24 * time.Hour,
+    Issuer:           "goserve-api",
+}
+
+jwtService := auth.NewJWTService(jwtConfig)
 ```
 
 ### CORS Configuration
@@ -330,66 +455,106 @@ middleware:
    - Easy to update and maintain
    - Clear documentation
 
-## Example: Complete Configuration
+## Complete Environment Configuration
+
+goserve uses a comprehensive environment configuration pattern as seen in the PostgreSQL example:
 
 ```go
 package config
 
 import (
     "os"
-    "github.com/spf13/viper"
+    "strconv"
+    "time"
 )
 
-type Config struct {
-    Server   ServerConfig
-    Database DatabaseConfig
-    Redis    RedisConfig
+// Env holds all environment configuration
+type Env struct {
+    // Database
+    DBUser        string
+    DBUserPwd     string
+    DBHost        string
+    DBPort        string
+    DBName        string
+    DBMinPoolSize int
+    DBMaxPoolSize int
+    DBQueryTimeout time.Duration
+
+    // Redis
+    RedisHost     string
+    RedisPort     int
+    RedisPassword string
+    RedisDB       int
+
+    // JWT
+    JWTSecretKeyPath  string
+    JWTPublicKeyPath  string
+    JWTAccessTokenExpiryMinutes int
+    JWTRefreshTokenExpiryHours  int
+
+    // Server
+    ServerHost string
+    ServerPort int
+    GoEnv      string
+    LogLevel   string
+
+    // Cache TTL
+    BlogCacheTTLMinutes int
+    UserCacheTTLMinutes int
+
+    // Email (optional)
+    SMTPHost     string
+    SMTPPort     int
+    SMTPUser     string
+    SMTPPassword string
+    FromEmail    string
 }
 
-type ServerConfig struct {
-    Host string
-    Port int
-    Mode string
-}
+// Load reads environment variables with defaults
+func Load() *Env {
+    return &Env{
+        // Database Configuration
+        DBUser:        getEnv("DB_USER", "postgres"),
+        DBUserPwd:     getEnv("DB_USER_PWD", "password"),
+        DBHost:        getEnv("DB_HOST", "localhost"),
+        DBPort:        getEnv("DB_PORT", "5432"),
+        DBName:        getEnv("DB_NAME", "goserve"),
+        DBMinPoolSize: getEnvInt("DB_MIN_POOL_SIZE", 5),
+        DBMaxPoolSize: getEnvInt("DB_MAX_POOL_SIZE", 25),
+        DBQueryTimeout: getEnvDuration("DB_QUERY_TIMEOUT", 30*time.Second),
 
-type DatabaseConfig struct {
-    Host     string
-    Port     int
-    Database string
-    User     string
-    Password string
-}
+        // Redis Configuration
+        RedisHost:     getEnv("REDIS_HOST", "localhost"),
+        RedisPort:     getEnvInt("REDIS_PORT", 6379),
+        RedisPassword: getEnv("REDIS_PASSWORD", ""),
+        RedisDB:       getEnvInt("REDIS_DB", 0),
 
-type RedisConfig struct {
-    Host string
-    Port int
-}
+        // JWT Configuration
+        JWTSecretKeyPath:  getEnv("JWT_SECRET_KEY_PATH", "keys/jwtRS256.key"),
+        JWTPublicKeyPath:  getEnv("JWT_PUBLIC_KEY_PATH", "keys/jwtRS256.key.pub"),
+        JWTAccessTokenExpiryMinutes: getEnvInt("JWT_ACCESS_TOKEN_EXPIRY_MINUTES", 15),
+        JWTRefreshTokenExpiryHours:  getEnvInt("JWT_REFRESH_TOKEN_EXPIRY_HOURS", 24),
 
-func Load() (*Config, error) {
-    viper.AutomaticEnv()
-    
-    config := &Config{
-        Server: ServerConfig{
-            Host: getEnv("SERVER_HOST", "0.0.0.0"),
-            Port: getEnvInt("SERVER_PORT", 8080),
-            Mode: getEnv("GO_MODE", "debug"),
-        },
-        Database: DatabaseConfig{
-            Host:     getEnv("DB_HOST", "localhost"),
-            Port:     getEnvInt("DB_PORT", 5432),
-            Database: getEnv("DB_NAME", "mydb"),
-            User:     getEnv("DB_USER", "user"),
-            Password: getEnv("DB_PASSWORD", ""),
-        },
-        Redis: RedisConfig{
-            Host: getEnv("REDIS_HOST", "localhost"),
-            Port: getEnvInt("REDIS_PORT", 6379),
-        },
+        // Server Configuration
+        ServerHost: getEnv("SERVER_HOST", "0.0.0.0"),
+        ServerPort: getEnvInt("SERVER_PORT", 8000),
+        GoEnv:      getEnv("GO_ENV", "development"),
+        LogLevel:   getEnv("LOG_LEVEL", "info"),
+
+        // Cache Configuration
+        BlogCacheTTLMinutes: getEnvInt("BLOG_CACHE_TTL_MINUTES", 60),
+        UserCacheTTLMinutes: getEnvInt("USER_CACHE_TTL_MINUTES", 30),
+
+        // Email Configuration (optional)
+        SMTPHost:     getEnv("SMTP_HOST", ""),
+        SMTPPort:     getEnvInt("SMTP_PORT", 587),
+        SMTPUser:     getEnv("SMTP_USER", ""),
+        SMTPPassword: getEnv("SMTP_PASSWORD", ""),
+        FromEmail:    getEnv("FROM_EMAIL", ""),
     }
-    
-    return config, nil
 }
 
+// Helper functions
 func getEnv(key, defaultValue string) string {
     if value := os.Getenv(key); value != "" {
         return value
@@ -398,9 +563,65 @@ func getEnv(key, defaultValue string) string {
 }
 
 func getEnvInt(key string, defaultValue int) int {
-    // Implementation for integer env vars
+    if value := os.Getenv(key); value != "" {
+        if intValue, err := strconv.Atoi(value); err == nil {
+            return intValue
+        }
+    }
     return defaultValue
 }
+
+func getEnvDuration(key string, defaultValue time.Duration) time.Duration {
+    if value := os.Getenv(key); value != "" {
+        if duration, err := time.ParseDuration(value); err == nil {
+            return duration
+        }
+    }
+    return defaultValue
+}
+```
+
+### Environment File Template (.env)
+
+```bash
+# Database
+DB_USER=postgres
+DB_USER_PWD=your_secure_password
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=goserve_db
+DB_MIN_POOL_SIZE=5
+DB_MAX_POOL_SIZE=25
+DB_QUERY_TIMEOUT=30s
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
+
+# JWT (RSA keys will be generated)
+JWT_SECRET_KEY_PATH=keys/jwtRS256.key
+JWT_PUBLIC_KEY_PATH=keys/jwtRS256.key.pub
+JWT_ACCESS_TOKEN_EXPIRY_MINUTES=15
+JWT_REFRESH_TOKEN_EXPIRY_HOURS=24
+
+# Server
+SERVER_HOST=0.0.0.0
+SERVER_PORT=8000
+GO_ENV=development
+LOG_LEVEL=debug
+
+# Cache
+BLOG_CACHE_TTL_MINUTES=60
+USER_CACHE_TTL_MINUTES=30
+
+# Email (optional)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+FROM_EMAIL=noreply@yourapp.com
 ```
 
 ## Next Steps

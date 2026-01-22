@@ -4,7 +4,7 @@ Understanding the goserve example API architecture and design patterns.
 
 ## Overview
 
-The project follows a **feature-based modular architecture** where each API endpoint is organized into self-contained modules with clear separation of concerns.
+The goserve PostgreSQL example demonstrates a complete **production-ready REST API** built with the goserve framework. It follows a **feature-based modular architecture** where each API endpoint is organized into self-contained modules with clear separation of concerns, JWT authentication, role-based authorization, and comprehensive testing.
 
 ### Core Principles
 
@@ -57,68 +57,174 @@ goserve-example-api-server-postgres/
 └── Dockerfile            # Container image
 ```
 
+## gomicro Extension
+
+This project serves as the foundation for the **gomicro microservices framework**, which extends goserve to a distributed architecture:
+
+### gomicro Architecture
+
+```
+Kong API Gateway (Port 8000)
+        ↓
+   ┌─────────────┐    NATS    ┌─────────────┐
+   │ auth-service│◄─────────►│ blog-service│
+   │   (Port 8001)│           │  (Port 8002)│
+   └─────────────┘            └─────────────┘
+        ↓                           ↓
+   PostgreSQL + Redis         PostgreSQL + Redis
+```
+
+### Key gomicro Features
+
+- **API Gateway**: Kong routes requests to appropriate services
+- **Inter-Service Communication**: NATS messaging for service coordination
+- **Service Discovery**: Automatic service registration and discovery
+- **Independent Scaling**: Each service scales independently
+- **Technology Diversity**: Services can use different tech stacks
+
+### Service Communication Patterns
+
+```go
+// API Key validation via Kong
+GET /api/blog/posts
+    ↓ Kong calls auth-service
+http://auth:8000/verify/apikey
+    ↓ Auth service validates API key
+    ↓ Kong routes to blog-service
+
+// Inter-service events via NATS
+auth-service publishes: "user.created"
+blog-service subscribes and updates blog authors
+```
+
 ## Application Flow
 
 ### Startup Sequence
 
 ```
-main.go
+main.go (cmd/main.go)
   ↓
-startup.Server()
+startup.Server() - Initialize HTTP server
   ↓
-create() - Initialize components
-  ├── Load Environment (config.Env)
+create() - Component initialization
+  ├── Load Environment Variables (config.Env)
+  │   ├── Database credentials
+  │   ├── JWT RSA keys
+  │   ├── Redis configuration
+  │   └── Server settings
   ├── Connect PostgreSQL (postgres.Database)
+  │   ├── Create connection pool
+  │   ├── Configure timeouts
+  │   └── Health checks
   ├── Connect Redis (redis.Store)
+  │   ├── Initialize client
+  │   ├── Configure pooling
+  │   └── Test connection
   ├── Create Module (startup.Module)
+  │   ├── Wire Dependencies
   │   ├── Initialize Services
   │   ├── Create Controllers
-  │   ├── Setup Middleware
-  │   └── Wire Dependencies
+  │   └── Setup Middleware
   ↓
-router.Start() - Start HTTP server
+router.Start() - Start Gin HTTP server
+  ├── Global middleware (CORS, logging, error handling)
+  ├── Route mounting (/auth, /user, /blog, etc.)
+  └── Server listening on configured port
 ```
 
-### Request Flow
+### Complete Request Flow
 
 ```
-HTTP Request
+HTTP Request (e.g., POST /blog/author)
   ↓
-Root Middleware (global)
-  ├── Error Catcher
-  ├── API Key Validation
-  └── Not Found Handler
+Root Middleware (Global - applied to all routes)
+├── Error Recovery - Catch panics and return 500
+├── API Key Validation - For external service calls
+├── CORS Headers - Cross-origin resource sharing
+├── Request Logging - Structured logging
+└── Not Found Handler - 404 for undefined routes
   ↓
-Router (Gin)
+Router (Gin Engine)
   ↓
-Feature Route Group
+Feature Route Group (/blog)
   ↓
-Authentication Middleware (if required)
-  ├── Extract JWT token
-  ├── Verify signature
-  ├── Validate claims
-  └── Load user from database
+Authentication Middleware (JWT - if route requires auth)
+├── Extract Bearer Token - From Authorization header
+├── Verify RSA Signature - Using public key
+├── Validate Claims - Check expiry, issuer, etc.
+├── Load User from Database - Fetch user details
+└── Set User Context - Store user in request context
   ↓
-Authorization Middleware (if required)
-  ├── Check user roles
-  └── Verify permissions
+Authorization Middleware (Roles - if route requires specific roles)
+├── Get User from Context - Retrieve authenticated user
+├── Check Required Roles - Compare with route requirements
+├── Validate Permissions - Role-based access control
+└── Allow/Deny Access - Proceed or return 403
   ↓
-Controller Handler
-  ├── Parse request (params, query, body)
-  ├── Validate input
-  └── Call service method
+Controller Handler (blog.controller.createHandler)
+├── Parse Request Body - JSON to DTO with validation
+├── Extract Path Parameters - URL parameters (e.g., :id)
+├── Extract Query Parameters - Query string parameters
+├── Validate Input - Struct field validation
+└── Call Service Method - Delegate to business logic
   ↓
-Service Layer
-  ├── Business logic
-  ├── Database operations
-  ├── Cache operations
-  └── External service calls
+Service Layer (Business Logic)
+├── Input Validation - Business rule validation
+├── Database Operations - CRUD operations with transactions
+├── Cache Operations - Redis cache get/set/invalidate
+├── External Service Calls - API calls to other services
+└── Event Publishing - NATS messages for microservices
   ↓
-Response
-  ├── Success (200-299)
-  ├── Client Error (400-499)
-  └── Server Error (500-599)
+Database/External Services
+  ↓
+Response Formation
+├── Success Response (200-299)
+│   ├── network.SendSuccessDataResponse()
+│   ├── network.SendSuccessMessageResponse()
+│   └── Include requested data
+├── Client Error Response (400-499)
+│   ├── network.SendBadRequestError() - Validation errors
+│   ├── network.SendUnauthorizedError() - Auth failures
+│   ├── network.SendForbiddenError() - Permission denied
+│   └── network.SendNotFoundError() - Resource not found
+└── Server Error Response (500-599)
+    ├── network.SendInternalServerError() - System errors
+    └── network.SendMixedError() - Auto-detect error type
 ```
+
+## Architectural Principles
+
+### 1. Feature Independence
+Each API feature (auth, blog, user) is completely independent:
+- Separate database tables and relationships
+- Isolated business logic and validation rules
+- Independent deployment and scaling capabilities
+- Clear API boundaries and contracts
+
+### 2. Service Sharing Architecture
+While features are independent, they share common services:
+- **Authentication Service** - Shared across all features
+- **User Service** - Referenced by blog service for author information
+- **Database Connection** - Shared PostgreSQL connection pool
+- **Redis Cache** - Shared caching infrastructure
+
+### 3. API Key + JWT Dual Authentication
+The system supports two authentication methods:
+- **API Keys** - For external services and microservices communication
+- **JWT Tokens** - For user authentication with RSA signing
+
+### 4. Role-Based Authorization
+Hierarchical permission system:
+- **Admin** - Full system access
+- **Author** - Can create and manage own blogs
+- **Editor** - Can edit and publish blogs
+- **User** - Basic user operations
+
+### 5. Cache-Aside Pattern
+Intelligent caching strategy:
+- **Read Operations** - Check cache first, fallback to database
+- **Write Operations** - Update database, invalidate cache
+- **Automatic Expiration** - Time-based cache invalidation
 
 ## Layer Responsibilities
 
@@ -126,45 +232,116 @@ Response
 
 **Location**: `api/[feature]/controller.go`
 
-**Purpose**: Handle HTTP requests and responses
+**Purpose**: Handle HTTP requests and responses with authentication/authorization
 
 **Responsibilities**:
-- Define route endpoints
-- Parse and validate requests
-- Call service methods
-- Format responses
-- Handle HTTP-specific logic
+- Define route endpoints within feature groups
+- Parse and validate requests using DTOs
+- Call service methods with proper error handling
+- Format responses with consistent structure
+- Handle HTTP-specific concerns (headers, status codes)
 
-**Example**:
+**Controller Structure**:
 
 ```go
 type controller struct {
-    network.Controller
-    common.ContextPayload
-    service Service
+    network.Controller           // Base controller with auth providers
+    common.ContextPayload        // User context management
+    service Service             // Business logic service
 }
 
+func NewController(
+    authProvider network.AuthenticationProvider,
+    authorizeProvider network.AuthorizationProvider,
+    service Service,
+) network.Controller {
+    return &controller{
+        Controller: network.NewController("/blog", authProvider, authorizeProvider),
+        service: service,
+    }
+}
+```
+
+**Route Mounting with Middleware**:
+
+```go
 func (c *controller) MountRoutes(group *gin.RouterGroup) {
-    group.POST("/", c.createHandler)
-    group.GET("/id/:id", c.getHandler)
-    group.PUT("/id/:id", c.updateHandler)
-    group.DELETE("/id/:id", c.deleteHandler)
-}
+    // Public routes (no authentication required)
+    group.GET("/public", c.getPublicBlogs)
 
-func (c *controller) createHandler(ctx *gin.Context) {
-    body, err := network.ReqBody[dto.CreateRequest](ctx)
+    // Protected routes (authentication required)
+    protected := group.Group("/")
+    protected.Use(c.AuthProvider.Middleware())
+    {
+        // Author routes (author or admin role required)
+        author := protected.Group("/author")
+        author.Use(c.AuthorizeProvider.RequireRole("author", "admin"))
+        {
+            author.POST("/", c.createBlog)
+            author.GET("/my-blogs", c.getMyBlogs)
+            author.PUT("/id/:id", c.updateBlog)
+            author.DELETE("/id/:id", c.deleteBlog)
+        }
+
+        // Editor routes (editor or admin role required)
+        editor := protected.Group("/editor")
+        editor.Use(c.AuthorizeProvider.RequireRole("editor", "admin"))
+        {
+            editor.PUT("/id/:id/publish", c.publishBlog)
+            editor.GET("/drafts", c.getDraftBlogs)
+        }
+    }
+}
+```
+
+**Request Handler Pattern**:
+
+```go
+func (c *controller) createBlog(ctx *gin.Context) {
+    // Parse and validate request body
+    body, err := network.ReqBody[dto.BlogCreate](ctx)
     if err != nil {
-        network.SendBadRequestError(ctx, err.Error(), err)
+        network.SendBadRequestError(ctx, "Invalid request body", err)
         return
     }
-    
-    result, err := c.service.Create(body)
+
+    // Get authenticated user from context
+    user := c.GetUser(ctx)
+    if user == nil {
+        network.SendUnauthorizedError(ctx, "User not authenticated", nil)
+        return
+    }
+
+    // Call service with user context
+    result, err := c.service.CreateBlog(body, user.ID)
     if err != nil {
         network.SendMixedError(ctx, err)
         return
     }
-    
-    network.SendSuccessDataResponse(ctx, "success", result)
+
+    network.SendSuccessDataResponse(ctx, "Blog created successfully", result)
+}
+
+func (c *controller) getBlogByID(ctx *gin.Context) {
+    // Parse path parameter
+    idStr := ctx.Param("id")
+    id, err := uuid.Parse(idStr)
+    if err != nil {
+        network.SendBadRequestError(ctx, "Invalid blog ID format", err)
+        return
+    }
+
+    // Parse query parameters
+    includeAuthor := ctx.DefaultQuery("includeAuthor", "false") == "true"
+
+    // Call service
+    result, err := c.service.GetBlogByID(id, includeAuthor)
+    if err != nil {
+        network.SendMixedError(ctx, err)
+        return
+    }
+
+    network.SendSuccessDataResponse(ctx, "Blog retrieved successfully", result)
 }
 ```
 
@@ -172,49 +349,166 @@ func (c *controller) createHandler(ctx *gin.Context) {
 
 **Location**: `api/[feature]/service.go`
 
-**Purpose**: Implement business logic
+**Purpose**: Implement business logic with database operations and caching
 
 **Responsibilities**:
-- Business rule enforcement
-- Database operations
-- Cache management
-- Data transformation
-- Service-to-service communication
+- Business rule enforcement and validation
+- Database CRUD operations with transactions
+- Redis caching (cache-aside pattern)
+- Data transformation between models and DTOs
+- Cross-service communication logic
 
-**Example**:
+**Service Interface Pattern**:
 
 ```go
 type Service interface {
-    Create(dto *dto.CreateRequest) (*model.Entity, error)
-    FindByID(id uuid.UUID) (*model.Entity, error)
-    Update(dto *dto.UpdateRequest) (*model.Entity, error)
-    Delete(id uuid.UUID) error
-}
+    // Blog CRUD operations
+    CreateBlog(dto *dto.BlogCreate, authorID uuid.UUID) (*dto.BlogPrivate, error)
+    GetBlogByID(id uuid.UUID, includeAuthor bool) (*dto.BlogPublic, error)
+    UpdateBlog(id uuid.UUID, dto *dto.BlogUpdate, userID uuid.UUID) (*dto.BlogPrivate, error)
+    DeleteBlog(id uuid.UUID, userID uuid.UUID) error
 
+    // Blog listing with pagination
+    GetPublishedBlogs(query *dto.BlogQuery) (*dto.PaginatedBlogs, error)
+    GetAuthorBlogs(authorID uuid.UUID, page, limit int) (*dto.PaginatedBlogs, error)
+
+    // Blog management operations
+    PublishBlog(id uuid.UUID, userID uuid.UUID) (*dto.BlogPublic, error)
+    UpdateBlogSlug(id uuid.UUID, newSlug string, userID uuid.UUID) error
+}
+```
+
+**Service Implementation with Caching**:
+
+```go
 type service struct {
-    db    *pgxpool.Pool
-    cache redis.Cache[dto.EntityCache]
+    db         *pgxpool.Pool
+    cache      redis.Cache[dto.BlogCache]
+    userService user.Service  // Dependency on user service
 }
 
-func (s *service) FindByID(id uuid.UUID) (*model.Entity, error) {
-    // Try cache first
-    cached, err := s.cache.Get(id.String())
-    if err == nil {
-        return cached, nil
+func NewService(db *pgxpool.Pool, store redis.Store, userService user.Service) Service {
+    return &service{
+        db:          db,
+        cache:       redis.NewCache[dto.BlogCache](store),
+        userService: userService,
     }
-    
-    // Query database
-    var entity model.Entity
-    query := `SELECT * FROM entities WHERE id = $1`
-    err = s.db.QueryRow(ctx, query, id).Scan(&entity)
+}
+
+func (s *service) GetBlogByID(id uuid.UUID, includeAuthor bool) (*dto.BlogPublic, error) {
+    // Try cache first (cache-aside pattern)
+    cached, err := s.cache.Get(id.String())
+    if err == nil && cached != nil {
+        blog := s.convertCacheToDTO(cached)
+        if includeAuthor {
+            author, err := s.userService.FetchUserById(cached.AuthorID)
+            if err == nil {
+                blog.Author = &dto.UserInfo{
+                    ID:   author.ID,
+                    Name: author.Name,
+                }
+            }
+        }
+        return blog, nil
+    }
+
+    // Cache miss - query database
+    blog, err := s.getBlogFromDatabase(id, includeAuthor)
     if err != nil {
         return nil, err
     }
-    
-    // Update cache
-    s.cache.Set(id.String(), &entity, time.Hour)
-    
-    return &entity, nil
+
+    // Update cache (don't include author info in cache)
+    cacheData := s.convertBlogToCache(blog)
+    s.cache.Set(id.String(), cacheData, time.Hour)
+
+    return blog, nil
+}
+
+func (s *service) CreateBlog(dto *dto.BlogCreate, authorID uuid.UUID) (*dto.BlogPrivate, error) {
+    // Business rule validation
+    if err := s.validateBlogCreate(dto, authorID); err != nil {
+        return nil, err
+    }
+
+    // Check slug uniqueness
+    if exists, _ := s.blogSlugExists(dto.Slug); exists {
+        return nil, network.NewBadRequestError("Blog with this slug already exists", nil)
+    }
+
+    // Start transaction
+    tx, err := s.db.Begin(context.Background())
+    if err != nil {
+        return nil, network.NewInternalServerError("Failed to start transaction", err)
+    }
+    defer tx.Rollback(context.Background())
+
+    // Create blog in database
+    blog, err := s.createBlogInTransaction(tx, dto, authorID)
+    if err != nil {
+        return nil, err
+    }
+
+    // Commit transaction
+    if err = tx.Commit(context.Background()); err != nil {
+        return nil, network.NewInternalServerError("Failed to commit transaction", err)
+    }
+
+    return blog, nil
+}
+
+func (s *service) PublishBlog(id uuid.UUID, userID uuid.UUID) (*dto.BlogPublic, error) {
+    // Check permissions (author or editor/admin)
+    user, err := s.userService.FetchUserById(userID)
+    if err != nil {
+        return nil, network.NewUnauthorizedError("User not found", err)
+    }
+
+    if !s.canPublishBlog(user) {
+        return nil, network.NewForbiddenError("Insufficient permissions to publish blog", nil)
+    }
+
+    // Update blog status
+    blog, err := s.updateBlogStatus(id, true, userID)
+    if err != nil {
+        return nil, err
+    }
+
+    // Invalidate cache
+    s.cache.Delete(id.String())
+
+    // Publish event for microservices (if using gomicro)
+    // s.publishBlogPublishedEvent(blog)
+
+    return s.convertToPublicDTO(blog), nil
+}
+```
+
+**Business Logic Validation**:
+
+```go
+func (s *service) validateBlogCreate(dto *dto.BlogCreate, authorID uuid.UUID) error {
+    // Check author permissions
+    user, err := s.userService.FetchUserById(authorID)
+    if err != nil {
+        return network.NewUnauthorizedError("Author not found", err)
+    }
+
+    if user.Role != "author" && user.Role != "admin" {
+        return network.NewForbiddenError("Only authors can create blogs", nil)
+    }
+
+    // Validate slug format
+    if !s.isValidSlug(dto.Slug) {
+        return network.NewBadRequestError("Invalid slug format", nil)
+    }
+
+    // Check tag limits
+    if len(dto.Tags) > 10 {
+        return network.NewBadRequestError("Too many tags (max 10)", nil)
+    }
+
+    return nil
 }
 ```
 
