@@ -376,6 +376,6 @@ ACCESS_TOKEN_VALIDITY_SEC=3600
 
 ## Related
 
-- [Installation](/installation) - Setup instructions
-- [Architecture](/architecture) - How configuration is used
-- [Deployment](/deployment) - Production configuration
+- Learn about [Getting Started](/postgres/getting-started) to run the application
+- Understand [Architecture](/postgres/architecture) for project structure
+- Review [Core Concepts](/postgres/core-concepts) for implementation patterns

@@ -404,6 +404,7 @@ docker compose logs api
 
 ## Next Steps
 
-- ✅ Installation complete? Learn about [Project Architecture](/architecture)
-- 🔧 Configure your environment: [Configuration Guide](/configuration)
-- 🚀 Start building: [Examples](/examples)
+- ✅ Installation complete? Start with [Getting Started](/postgres/getting-started)
+- 🏗️ Learn about [Architecture](/postgres/architecture)
+- ⚙️ Configure your setup: [Configuration Guide](/postgres/configuration)
+- 📚 Check the [API Reference](/postgres/api-reference)

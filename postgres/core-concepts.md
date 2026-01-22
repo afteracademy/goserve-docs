@@ -868,7 +868,6 @@ func (m *errorCatcher) Handler(ctx *gin.Context) {
 
 ## Next Steps
 
-- [Configuration Guide](./configuration.md) - Environment variables and settings
-- [API Reference](./api-reference.md) - Complete endpoint documentation
-- [Examples](./examples.md) - Practical usage examples
-- [Testing](./testing.md) - Test strategies and examples
+- See [Architecture](/postgres/architecture) for detailed project structure
+- Check [Configuration](/postgres/configuration) for environment setup
+- Review [API Reference](/postgres/api-reference) for endpoint documentation
