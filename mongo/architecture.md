@@ -19,36 +19,128 @@ The goserve MongoDB example demonstrates a complete **production-ready REST API*
 3. **Clean Separation** - Controllers, services, models, and DTOs are clearly separated
 4. **Testability** - Architecture supports easy unit and integration testing
 
+## API Design
+
+![Request-Response design diagram showing middleware, controller, service, and database flow](/images/request-flow.svg)
+
+
 ## Directory Structure
 
 ```
 goserve-example-api-server-mongo/
-├── api/                   # API feature modules
-│   └── sample/            # Sample feature
-│       ├── dto/           # Data Transfer Objects
-│       │   └── info_sample.go
-│       ├── model/         # MongoDB document models
-│       │   └── sample.go
-│       ├── controller.go  # HTTP handlers
-│       └── service.go     # Business logic
-├── cmd/                   # Application entry point
-│   └── main.go            # Main function
-├── common/                # Shared utilities
-│   └── context_payload.go # Request context helpers
-├── config/                # Configuration
-│   └── env.go             # Environment variables
-├── startup/               # Server initialization
-│   ├── server.go          # Server setup
-│   ├── module.go          # Dependency injection
-│   └── indexes.go         # Database indexes
-├── tests/                 # Integration tests
-├── utils/                 # Utility functions
-├── .tools/                # Code generation tools
-│   ├── apigen.go          # API generator
-│   ├── rsa/               # RSA key generator
-│   └── copy/              # Env file copier
-├── keys/                  # RSA keys for JWT
-└── .extra/                # MongoDB scripts and docs
+├── Dockerfile                # Production-ready container build
+├── docker-compose.yml        # Local development stack
+├── go.mod                    # Go module definition
+├── go.sum                    # Dependency lockfile
+│
+├── cmd/                      # Application entry points
+│   └── main.go               # Bootstraps the API server
+│
+├── api/                      # Feature-oriented API modules
+│   ├── auth/                 # Authentication & authorization feature
+│   │   ├── controller.go     # HTTP handlers (routes)
+│   │   ├── controller_test.go
+│   │   ├── service.go        # Business logic
+│   │   ├── mock.go           # Service mocks for testing
+│   │   ├── dto/              # Request/response DTOs
+│   │   │   ├── signin_basic.go
+│   │   │   ├── signup_basic.go
+│   │   │   ├── token_refresh.go
+│   │   │   ├── user_auth.go
+│   │   │   └── user_tokens.go
+│   │   ├── model/            # Domain models (DB schema)
+│   │   │   ├── apikey.go
+│   │   │   └── keystore.go
+│   │   └── middleware/       # Auth-related middleware
+│   │       ├── authentication.go
+│   │       ├── authorization.go
+│   │       ├── keyprotection.go
+│   │       └── *_test.go
+│   │
+│   ├── blog/                 # Blog feature
+│   │   ├── controller.go
+│   │   ├── service.go
+│   │   ├── model/
+│   │   │   └── blog.go
+│   │   ├── dto/              # Blog DTOs
+│   │   │   ├── create_blog.go
+│   │   │   ├── update_blog.go
+│   │   │   ├── public_blog.go
+│   │   │   ├── private_blog.go
+│   │   │   └── info_blog.go
+│   │   ├── author/           # Nested sub-feature
+│   │   │   ├── controller.go
+│   │   │   └── service.go
+│   │   └── editor/           # Editor-specific logic
+│   │       ├── controller.go
+│   │       └── service.go
+│   │
+│   ├── blogs/                # Blog listing / read-only APIs
+│   │   ├── controller.go
+│   │   ├── service.go
+│   │   └── dto/
+│   │       ├── item_blog.go
+│   │       └── tag.go
+│   │
+│   ├── user/                 # User management feature
+│   │   ├── controller.go
+│   │   ├── service.go
+│   │   ├── mock.go
+│   │   ├── model/
+│   │   │   ├── user.go
+│   │   │   └── role.go
+│   │   └── dto/
+│   │       ├── info_public_user.go
+│   │       ├── info_private_user.go
+│   │       └── info_role.go
+│   │
+│   ├── contact/              # Contact / messaging feature
+│   │   ├── controller.go
+│   │   ├── service.go
+│   │   ├── model/
+│   │   │   └── message.go
+│   │   └── dto/
+│   │       ├── create_message.go
+│   │       └── info_message.go
+│   │
+│   └── health/               # Health & readiness checks
+│       ├── controller.go
+│       ├── service.go
+│       └── dto/
+│           └── health_check.go
+│
+├── startup/                  # Application initialization
+│   ├── server.go             # HTTP server setup
+│   ├── module.go             # Dependency wiring (DI)
+│   ├── indexes.go            # MongoDB index creation
+│   └── testserver.go         # Test server bootstrap
+│
+├── config/                   # Configuration management
+│   └── env.go                # Environment variable parsing
+│
+├── common/                   # Shared, cross-cutting utilities
+│   └── payload.go            # Standard API response payloads
+│
+├── utils/                    # Reusable helpers
+│   ├── convertor.go
+│   ├── file.go
+│   └── *_test.go
+│
+├── tests/                    # Integration & end-to-end tests
+│   └── auth_integration_test.go
+│
+├── keys/                     # RSA keys (JWT signing)
+│   ├── private.pem
+│   ├── public.pem
+│   └── info.txt
+│
+├── .tools/                   # Internal developer tools
+│   ├── apigen.go             # API code generator
+│   ├── rsa/                  # RSA key generator
+│   └── copy/                 # Env file copier
+│
+└── .extra/                   # Database scripts & documentation
+    └── setup/                # MongoDB initialization scripts
 ```
 
 ## Application Flow
@@ -84,35 +176,16 @@ create() - Component initialization
   │   └── Optimize query performance
   ↓
 router.Start() - Start Gin HTTP server
-  ├── Global middleware (CORS, logging, error handling)
-  ├── Route mounting (/sample endpoints)
+  ├── Global middleware (logging, error handling)
+  ├── Route mounting (/api endpoints)
   └── Server listening on configured port
 ```
-
-### Request Flow
-
-```
-HTTP Request (e.g., GET /sample/id/123)
-  ↓
-Root Middleware (Global - applied to all routes)
-├── Error Recovery - Catch panics and return 500
-├── API Key Validation - For external service calls
-├── CORS Headers - Cross-origin resource sharing
-├── Request Logging - Structured logging
-└── Not Found Handler - 404 for undefined routes
-  ↓
-Router (Gin Engine)
-```
-
-## API Design
-
-![Request-Response design diagram showing middleware, controller, service, and database flow](/images/request-flow.svg)
 
 The API follows a layered request-response pattern with proper error handling and middleware chains.
 
 ### Request Flow
 
-````
+```
 HTTP Request (e.g., GET /sample/id/123)
   ↓
 Root Middleware (Global - applied to all routes)
@@ -123,6 +196,7 @@ Root Middleware (Global - applied to all routes)
 └── Not Found Handler - 404 for undefined routes
   ↓
 Router (Gin Engine)
+```
 
 ## Layer Responsibilities
 
@@ -143,37 +217,43 @@ Router (Gin Engine)
 
 ```go
 type controller struct {
-    network.Controller           // Base controller interface
-    common.ContextPayload        // User context management
-    service Service             // Business logic service
+	network.Controller           // Base controller interface
+	common.ContextPayload        // User context management
+	service Service             // Business logic service
 }
 
 func NewController(
-    authProvider network.AuthenticationProvider,
-    authorizeProvider network.AuthorizationProvider,
-    service Service,
+	authProvider network.AuthenticationProvider,
+	authorizeProvider network.AuthorizationProvider,
+	service Service,
 ) network.Controller {
-    return &controller{
-        Controller: network.NewController("/sample", authProvider, authorizeProvider),
-        service: service,
-    }
+	return &controller{
+		Controller: network.NewController("/sample", authProvider, authorizeProvider),
+		service: service,
+	}
 }
 
 func (c *controller) MountRoutes(group *gin.RouterGroup) {
-    // Public routes
-    group.GET("/id/:id", c.getSampleHandler)
-    group.GET("/", c.getSamplesHandler)
+	// Public routes
+	group.GET("/id/:id", c.getSampleHandler)
+	group.GET("/", c.getSamplesHandler)
 
-    // Protected routes (require authentication)
-    protected := group.Group("/")
-    protected.Use(c.AuthProvider.Middleware())
-    {
-        protected.POST("/", c.createSampleHandler)
-        protected.PUT("/id/:id", c.updateSampleHandler)
-        protected.DELETE("/id/:id", c.deleteSampleHandler)
-    }
+	// Protected routes (require authentication)
+	group.POST("/", c.Authentication(), c.createSampleHandler)
+	group.PUT("/id/:id", c.Authentication(), c.updateSampleHandler)
+	group.DELETE("/id/:id", c.Authentication(), c.deleteSampleHandler)
+	// OR
+	private := group.Use(c.Authentication())
+	private.POST("/", c.createSampleHandler)
+	private.PUT("/id/:id", c.updateSampleHandler)
+	private.DELETE("/id/:id", c.deleteSampleHandler)
+
+	protected := group.Use(c.Authentication(), c.Authorization(string(userModel.RoleCodeAuthor)))
+	protected.POST("/author-only", c.authorOnlyHandler)
 }
-````
+```
+
+Here `authProvider network.AuthenticationProvider`, `authorizeProvider network.AuthorizationProvider` are injected dependencies for handling authentication and authorization via `module` wiring. This makes `c.Authentication()` and `c.Authorization()` methods available in the controller. These functions return Gin middleware handlers that enforce JWT auth and role checks. These are implemented in `api/auth/middleware/authentication.go` and `authorization.go`.
 
 ### 2. Services
 
@@ -193,58 +273,30 @@ func (c *controller) MountRoutes(group *gin.RouterGroup) {
 
 ```go
 type Service interface {
-    FindSample(id primitive.ObjectID) (*model.Sample, error)
-    FindSamples(filter bson.M) ([]*model.Sample, error)
-    CreateSample(dto *dto.CreateSample) (*model.Sample, error)
-    UpdateSample(id primitive.ObjectID, dto *dto.UpdateSample) (*model.Sample, error)
-    DeleteSample(id primitive.ObjectID) error
+	FindSample(id primitive.ObjectID) (*model.Sample, error)
 }
 
 type service struct {
-    sampleQueryBuilder mongo.QueryBuilder[model.Sample]
-    infoSampleCache    redis.Cache[dto.InfoSample]
+	sampleQueryBuilder mongo.QueryBuilder[model.Sample]
+	infoSampleCache    redis.Cache[dto.InfoSample]
 }
 
 func NewService(db mongo.Database, store redis.Store) Service {
-    return &service{
-        sampleQueryBuilder: mongo.NewQueryBuilder[model.Sample](db, model.CollectionName),
-        infoSampleCache: redis.NewCache[dto.InfoSample](store),
-    }
+	return &service{
+		sampleQueryBuilder: mongo.NewQueryBuilder[model.Sample](db, model.CollectionName),
+		infoSampleCache: redis.NewCache[dto.InfoSample](store),
+	}
 }
 
 func (s *service) FindSample(id primitive.ObjectID) (*model.Sample, error) {
-    filter := bson.M{"_id": id}
+	filter := bson.M{"_id": id}
 
-    sample, err := s.sampleQueryBuilder.SingleQuery().FindOne(filter, nil)
-    if err != nil {
-        return nil, err
-    }
+	msg, err := s.sampleQueryBuilder.SingleQuery().FindOne(filter, nil)
+	if err != nil {
+		return nil, err
+	}
 
-    return sample, nil
-}
-
-func (s *service) CreateSample(dto *dto.CreateSample) (*model.Sample, error) {
-    // Business validation
-    if err := s.validateCreateSample(dto); err != nil {
-        return nil, err
-    }
-
-    // Create model
-    sample, err := model.NewSample(dto.Field)
-    if err != nil {
-        return nil, err
-    }
-
-    // Insert into MongoDB
-    result, err := s.sampleQueryBuilder.SingleQuery().InsertOne(sample)
-    if err != nil {
-        return nil, err
-    }
-
-    // Set the generated ID
-    sample.ID = result.InsertedID.(primitive.ObjectID)
-
-    return sample, nil
+	return msg, nil
 }
 ```
 
@@ -264,53 +316,46 @@ func (s *service) CreateSample(dto *dto.CreateSample) (*model.Sample, error) {
 **MongoDB Model Pattern**:
 
 ```go
-type Sample struct {
-    ID        primitive.ObjectID `bson:"_id,omitempty" validate:"-"`
-    Field     string             `bson:"field" validate:"required"`
-    Status    bool               `bson:"status" validate:"required"`
-    CreatedAt time.Time          `bson:"createdAt" validate:"required"`
-    UpdatedAt time.Time          `bson:"updatedAt" validate:"required"`
-}
-
 const CollectionName = "samples"
 
-// Factory method
+type Sample struct {
+	ID        primitive.ObjectID `bson:"_id,omitempty" validate:"-"`
+	Field     string             `bson:"field" validate:"required"`
+	Status    bool               `bson:"status" validate:"required"`
+	CreatedAt time.Time          `bson:"createdAt" validate:"required"`
+	UpdatedAt time.Time          `bson:"updatedAt" validate:"required"`
+}
+
 func NewSample(field string) (*Sample, error) {
-    now := time.Now()
-    doc := Sample{
-        Field:     field,
-        Status:    true,
-        CreatedAt: now,
-        UpdatedAt: now,
-    }
-
-    if err := doc.Validate(); err != nil {
-        return nil, err
-    }
-
-    return &doc, nil
+	time := time.Now()
+	doc := Sample{
+		Field:     field,
+		Status:    true,
+		CreatedAt: time,
+		UpdatedAt: time,
+	}
+	if err := doc.Validate(); err != nil {
+		return nil, err
+	}
+	return &doc, nil
 }
 
-// Validation
 func (doc *Sample) Validate() error {
-    validate := validator.New()
-    return validate.Struct(doc)
+	validate := validator.New()
+	return validate.Struct(doc)
 }
 
-// Indexing
 func (*Sample) EnsureIndexes(db mongo.Database) {
-    indexes := []mongod.IndexModel{
-        {
-            Keys: bson.D{
-                {Key: "_id", Value: 1},
-                {Key: "status", Value: 1},
-            },
-        },
-    }
-
-    mongo.NewQueryBuilder[Sample](db, CollectionName).
-        Query(context.Background()).
-        CreateIndexes(indexes)
+	indexes := []mongod.IndexModel{
+		{
+			Keys: bson.D{
+				{Key: "_id", Value: 1},
+				{Key: "status", Value: 1},
+			},
+		},
+	}
+	
+	mongo.NewQueryBuilder[Sample](db, CollectionName).Query(context.Background()).CreateIndexes(indexes)
 }
 ```
 
@@ -330,23 +375,10 @@ func (*Sample) EnsureIndexes(db mongo.Database) {
 **DTO Patterns**:
 
 ```go
-// Request DTOs
-type CreateSample struct {
-    Field  string `json:"field" binding:"required" validate:"required,min=1,max=500"`
-}
-
-type UpdateSample struct {
-    Field  *string `json:"field,omitempty" validate:"omitempty,min=1,max=500"`
-    Status *bool   `json:"status,omitempty"`
-}
-
-// Response DTOs
 type InfoSample struct {
-    ID        primitive.ObjectID `json:"_id"`
-    Field     string             `json:"field"`
-    Status    bool               `json:"status"`
-    CreatedAt time.Time          `json:"createdAt"`
-    UpdatedAt time.Time          `json:"updatedAt"`
+	ID        primitive.ObjectID `json:"_id" binding:"required"`
+	Field     string             `json:"field" binding:"required"`
+	CreatedAt time.Time          `json:"createdAt" binding:"required"`
 }
 ```
 
@@ -355,6 +387,9 @@ type InfoSample struct {
 ### Connection Management
 
 ```go
+// startup/server.go create function
+context := context.Background()
+
 dbConfig := mongo.DbConfig{
 	User:        env.DBUser,
 	Pwd:         env.DBUserPwd,
@@ -388,22 +423,33 @@ if err != nil {
 	return nil, err
 }
 
-func (s *service) CreateUser(user *model.User) (*model.User, error) {
-	id, err := s.userQueryBuilder.SingleQuery().InsertOne(user)
-	if err != nil {
-		return nil, err
-	}
-	user.ID = *id
-	return user, nil
+// Insert operations
+blogQueryBuilder := mongo.NewQueryBuilder[model.Blog](db, model.CollectionName)
+blog, err := model.NewBlog(b.Slug, b.Title, b.Description, b.DraftText, b.Tags, author)
+if err != nil {
+	return nil, err
 }
+
+created, err := blogQueryBuilder.SingleQuery().InsertAndRetrieveOne(blog)
+if err != nil {
+	return nil, err
+}
+
 // Update operations
-filter := bson.M{"_id": id}
-update := bson.M{"$set": bson.M{"field": newValue}}
-result, err := queryBuilder.SingleQuery().UpdateOne(filter, update)
+filter := bson.M{"_id": blogId, "author": author.ID, "status": true}
+update := bson.M{"$set": bson.M{"status": false, "updatedBy": author.ID, "updatedAt": time.Now()}}
+result, err := blogQueryBuilder.SingleQuery().UpdateOne(filter, update)
+if err != nil {
+	return err
+}
+
+if result.MatchedCount == 0 {
+	return network.NewNotFoundError("blog not found", nil)
+}
 
 // Delete operations
 filter := bson.M{"_id": id}
-result, err := queryBuilder.SingleQuery().DeleteOne(filter)
+result, err := blogQueryBuilder.SingleQuery().DeleteOne(filter)
 ```
 
 ## Caching Strategy
@@ -413,21 +459,25 @@ result, err := queryBuilder.SingleQuery().DeleteOne(filter)
 ```go
 // Cache configuration
 type service struct {
-    sampleQueryBuilder mongo.QueryBuilder[model.Sample]
-    infoSampleCache    redis.Cache[dto.InfoSample]
+	publicBlogCache  redis.Cache[dto.PublicBlog]
+	//...
 }
 
-// Cache operations
-func (s *service) getCachedSample(id primitive.ObjectID) (*dto.InfoSample, error) {
-    return s.infoSampleCache.Get(id.Hex())
+func NewService(db mongo.Database, store redis.Store, userService user.Service) Service {
+	return &service{
+		publicBlogCache:  redis.NewCache[dto.PublicBlog](store),
+		// ...
+	}
 }
 
-func (s *service) setCachedSample(id primitive.ObjectID, data *dto.InfoSample) error {
-    return s.infoSampleCache.Set(id.Hex(), data, time.Hour)
+func (s *service) SetBlogDtoCacheById(blog *dto.PublicBlog) error {
+	key := "blog_" + blog.ID.Hex()
+	return s.publicBlogCache.SetJSON(key, blog, time.Duration(10*time.Minute))
 }
 
-func (s *service) invalidateSampleCache(id primitive.ObjectID) error {
-    return s.infoSampleCache.Delete(id.Hex())
+func (s *service) GetBlogDtoCacheById(id primitive.ObjectID) (*dto.PublicBlog, error) {
+	key := "blog_" + id.Hex()
+	return s.publicBlogCache.GetJSON(key)
 }
 ```
 
@@ -438,40 +488,37 @@ func (s *service) invalidateSampleCache(id primitive.ObjectID) error {
 ```go
 // Service layer errors
 func (s *service) FindSample(id primitive.ObjectID) (*model.Sample, error) {
-    filter := bson.M{"_id": id}
+	filter := bson.M{"_id": id}
 
-    sample, err := s.sampleQueryBuilder.SingleQuery().FindOne(filter, nil)
-    if err != nil {
-        if err == mongo.ErrNoDocuments {
-            return nil, network.NewNotFoundError("Sample not found", err)
-        }
-        return nil, network.NewInternalServerError("Database error", err)
-    }
+	sample, err := s.sampleQueryBuilder.SingleQuery().FindOne(filter, nil)
+	if err != nil {
+		return nil, err
+	}
 
-    return sample, nil
+	return sample, nil
 }
 
 // Controller error handling
 func (c *controller) getSampleHandler(ctx *gin.Context) {
-    id, err := network.ReqParams[coredto.MongoId](ctx)
-    if err != nil {
-        network.SendBadRequestError(ctx, "Invalid ID format", err)
-        return
-    }
+	mongoId, err := network.ReqParams[coredto.MongoId](ctx)
+	if err != nil {
+		network.SendBadRequestError(ctx, err.Error(), err)
+		return
+	}
 
-    sample, err := c.service.FindSample(id.ID)
-    if err != nil {
-        network.SendMixedError(ctx, err)
-        return
-    }
+	sample, err := c.service.FindSample(mongoId.ID)
+	if err != nil {
+		network.SendNotFoundError(ctx, "sample not found", err)
+		return
+	}
 
-    data, err := utils.MapTo[dto.InfoSample](sample)
-    if err != nil {
-        network.SendInternalServerError(ctx, "Data mapping error", err)
-        return
-    }
+	data, err := utility.MapTo[dto.InfoSample](sample)
+	if err != nil {
+		network.SendInternalServerError(ctx, "something went wrong", err)
+		return
+	}
 
-    network.SendSuccessDataResponse(ctx, "Sample retrieved successfully", data)
+	network.SendSuccessDataResponse(ctx, "success", data)
 }
 ```
 
@@ -480,52 +527,65 @@ func (c *controller) getSampleHandler(ctx *gin.Context) {
 ### Unit Tests
 
 ```go
-func TestSampleService_FindSample(t *testing.T) {
-    // Setup
-    mockDB := mongo.NewMockDatabase()
-    mockStore := redis.NewMockStore()
-    service := sample.NewService(mockDB, mockStore)
+func TestAuthenticationProvider_NoAccessToken(t *testing.T) {
+	mockAuthService := new(auth.MockService)
+	mockUserService := new(user.MockService)
 
-    // Test
-    sample, err := service.FindSample(primitive.NewObjectID())
+	mockAuthService.AssertNotCalled(t, "VerifyToken", mock.Anything)
 
-    // Assert
-    assert.NoError(t, err)
-    assert.NotNil(t, sample)
+	rr := network.MockTestAuthenticationProvider(
+		t,
+		NewAuthenticationProvider(mockAuthService, mockUserService),
+		network.MockSuccessMsgHandler("success"),
+		nil,
+	)
+
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	assert.Contains(t, rr.Body.String(), `"message":"permission denied: missing Authorization"`)
+	mockAuthService.AssertExpectations(t)
 }
 ```
 
 ### Integration Tests
 
 ```go
-func TestIntegration_SampleCRUD(t *testing.T) {
-    router, module, teardown := startup.TestServer()
-    defer teardown()
+func TestIntegrationAuthController_SignupSuccess(t *testing.T) {
+	router, module, shutdown := startup.TestServer()
+	defer shutdown()
 
-    // Test data
-    sampleData := `{"field": "Test Sample", "status": true}`
+	apikey, err := module.GetInstance().AuthService.CreateApiKey("test_key", 1, []model.Permission{"test"}, []string{"comment"})
+	if err != nil {
+		t.Fatalf("could not create apikey: %v", err)
+	}
 
-    // Create sample
-    w := httptest.NewRecorder()
-    req, _ := http.NewRequest("POST", "/sample", strings.NewReader(sampleData))
-    req.Header.Set("x-api-key", "test-key")
-    router.ServeHTTP(w, req)
+	body := `{"email":"test@abc.com","password":"123456","name":"test name"}`
 
-    assert.Equal(t, 200, w.Code)
+	req, err := http.NewRequest("POST", "/auth/signup/basic", bytes.NewBuffer([]byte(body)))
+	if err != nil {
+		t.Fatalf("could not create request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(network.ApiKeyHeader, apikey.Key)
 
-    // Parse response to get ID
-    var response map[string]interface{}
-    json.Unmarshal(w.Body.Bytes(), &response)
-    data := response["data"].(map[string]interface{})
-    id := data["_id"].(string)
+	rr := httptest.NewRecorder()
+	router.GetEngine().ServeHTTP(rr, req)
 
-    // Get sample
-    w = httptest.NewRecorder()
-    req, _ = http.NewRequest("GET", "/sample/id/"+id, nil)
-    req.Header.Set("x-api-key", "test-key")
-    router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Contains(t, rr.Body.String(), `"message":"success"`)
+	assert.Contains(t, rr.Body.String(), `"data"`)
+	assert.Contains(t, rr.Body.String(), `"user"`)
+	assert.Contains(t, rr.Body.String(), `"roles"`)
+	assert.Contains(t, rr.Body.String(), `"tokens"`)
 
-    assert.Equal(t, 200, w.Code)
+	_, err = module.GetInstance().AuthService.DeleteApiKey(apikey)
+	if err != nil {
+		t.Fatalf("could not delete apikey: %v", err)
+	}
+
+	_, err = module.GetInstance().UserService.DeleteUserByEmail("test@abc.com")
+	if err != nil {
+		t.Fatalf("could not delete user: %v", err)
+	}
 }
 ```
 
@@ -543,10 +603,3 @@ This generates:
 - `api/sample/model/sample.go` - MongoDB document model
 - `api/sample/controller.go` - HTTP handlers
 - `api/sample/service.go` - Business logic
-- `api/sample/mock.go` - Test mocks
-
-## Next Steps
-
-- Understand [Core Concepts](/mongo/core-concepts) in depth
-- Learn about [Configuration](/mongo/configuration) options
-- Explore [API Reference](/mongo/api-reference) for complete documentation

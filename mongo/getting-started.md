@@ -1,6 +1,17 @@
 # Getting Started
 
-Get up and running with the goserve MongoDB example API server in minutes.
+Get up and running with the goserve MongoDB example API server. 
+
+**The project includes the following dependencies (automatically managed):**
+
+- **goserve** - Go backend framework
+- **Gin** - HTTP web framework
+- **MongoDB Driver** - Official MongoDB driver
+- **go-redis** - Redis client
+- **JWT** - JSON Web Tokens for authentication
+- **Validator** - Request validation
+- **Viper** - Configuration management
+- **Crypto** - Cryptographic utilities
 
 ## Prerequisites
 
@@ -43,8 +54,6 @@ go run .tools/rsa/keygen.go && go run .tools/copy/envs.go
 docker compose up --build -d
 curl -H http://localhost:8080/health
 ```
-
-More guidance: [API key setup](/api-keys).
 
 If you need the details, continue below.
 
@@ -103,7 +112,11 @@ Set an API key in your environment, then reuse it:
 export API_KEY=your-api-key
 ```
 
-If your database is empty, create an entry in the `api_keys` collection (or use the seeded key if provided). See [API key setup](/api-keys) for options.
+Note: API_KEY `1D3F2DD1A5DE725DD4DF1D82BBB37` is created as default by this project through mongo init scripts.
+
+If your database is empty, create an entry in the `api_keys` collection.
+
+See [API key setup](/api-keys) for more details.
 
 ### 2. Sign Up
 
@@ -205,6 +218,30 @@ Resonpse
 }
 ```
 
+## Roles
+You must assign appropriate roles to users in the database to access protected routes. You can do this by directly updating the `users` collection in MongoDB. You will find the roles defined in the `api/user/model/role.go` collection.
+
+```go
+type RoleCode string
+
+const (
+	RoleCodeLearner RoleCode = "LEARNER"
+	RoleCodeAdmin   RoleCode = "ADMIN"
+	RoleCodeAuthor  RoleCode = "AUTHOR"
+	RoleCodeEditor  RoleCode = "EDITOR"
+)
+
+type Role struct {
+	ID        primitive.ObjectID `bson:"_id,omitempty"`
+	Code      RoleCode           `bson:"code" validate:"required,rolecode"`
+	Status    bool               `bson:"status" validate:"required"`
+	CreatedAt time.Time          `bson:"createdAt" validate:"required"`
+	UpdatedAt time.Time          `bson:"updatedAt" validate:"required"`
+}
+
+const RolesCollectionName = "roles"
+```
+
 ## Architecture Overview
 
 This example demonstrates goserve's architecture with MongoDB:
@@ -267,26 +304,58 @@ go run .tools/apigen.go your-feature-name
 
 This creates the complete directory structure and skeleton files for a new feature.
 
-### Local Development
+## Local Development
 
 For local development without Docker:
 
-1. Start MongoDB and Redis locally
-2. Update `.env` and `.test.env`:
+1. Install dependencies:
+	```bash
+	go mod tidy
+	```
+2. Start MongoDB and Redis locally (or via Docker).
+3. Update `.env` and `.test.env`:
    ```
    DB_HOST=localhost
    REDIS_HOST=localhost
    ```
-3. Run the application:
+4. Run the application:
    ```bash
    go run cmd/main.go
    ```
+If ports are already in use:
 
-## Next Steps
+```bash
+# Check what's using the ports
+lsof -i :8080
+lsof -i :27017
+lsof -i :6379
 
-- [API Reference](/mongo/api-reference) - Complete endpoint documentation
-- [Architecture Details](/mongo/architecture) - Deep dive into the project structure
-- [Configuration Guide](/mongo/configuration) - Environment setup and options
+# Update .env file with different ports
+SERVER_PORT=8081
+DB_PORT=27018
+REDIS_PORT=6380
+```
+
+### MongoDB Connection Issues
+
+```bash
+# Check MongoDB status
+docker ps | grep mongo
+
+# Connect to MongoDB
+docker exec -it <mongo_container> mongo
+
+# Verify connection
+go run cmd/main.go
+```
+
+### Permission Issues
+
+```bash
+# Fix file permissions
+chmod +x .tools/rsa/keygen.go
+chmod +x .tools/copy/envs.go
+```
 
 ## Observability
 - Health endpoint: `GET /health` on port 8080

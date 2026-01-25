@@ -77,7 +77,6 @@ export default defineConfig({
           items: [
             { text: "Overview", link: "/mongo/" },
             { text: "Getting Started", link: "/mongo/getting-started" },
-            { text: "Installation", link: "/mongo/installation" },
             { text: "Architecture", link: "/mongo/architecture" },
             { text: "Core Concepts", link: "/mongo/core-concepts" },
             { text: "Configuration", link: "/mongo/configuration" },

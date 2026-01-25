@@ -78,4 +78,7 @@
 code,
 pre {
   font-feature-settings: "liga" 0;
+	tab-size: 2!important;
+  -moz-tab-size: 2!important;
+  -o-tab-size: 2!important;
 }
