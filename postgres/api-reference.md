@@ -543,5 +543,5 @@ Users can have the following roles:
 
 ## Next
 
-- Try the [goserve Postgres Example](/postgres)
+- Try the [goserve MongoDb Example](/mongo)
 - Explore [goserve Microservice Example](/micro)
