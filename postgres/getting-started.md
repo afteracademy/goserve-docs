@@ -52,7 +52,7 @@ curl -H "x-api-key: $API_KEY" http://localhost:8080/health
 Need more options? See [API key setup](/api-keys).
 
 ### Fast checks (recommended)
-- Tests: `docker exec -t goserve_example_api_server_postgres go test -v ./...` (or `go test -v ./...` locally)
+- Tests: `docker exec -t goserver-postgres go test -v ./...` (or `go test -v ./...` locally)
 - Health: `curl -H "x-api-key: $API_KEY" http://localhost:8080/health`
 - Seed reminder: ensure at least one API key exists before calling auth/blog routes.
 

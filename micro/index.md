@@ -4,6 +4,13 @@ layout: doc
 
 # gomicro - Go Microservices Architecture
 
+[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://golang.org)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/afteracademy/gomicro/blob/main/LICENSE)
+[![Kong](https://img.shields.io/badge/Kong-3.0+-003459?style=flat&logo=kong)](https://konghq.com)
+[![NATS](https://img.shields.io/badge/NATS-2.9+-27AAE1?style=flat&logo=nats.io)](https://nats.io)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-316192?style=flat&logo=postgresql)](https://www.postgresql.org)
+[![MongoDB](https://img.shields.io/badge/MongoDB-7+-47A248?style=flat&logo=mongodb)](https://www.mongodb.com)
+
 **Complete Microservices Implementation with Kong API Gateway**
 
 ![Gomicro banner](/images/gomicro-banner.png)
@@ -145,7 +152,26 @@ curl http://localhost:8000/health
 
 ## Community
 
-- [GitHub Repository](https://github.com/afteracademy/gomicro)
+- [GitHub Repository](https://github.com/afteracademy/gomicro) - 30+ stars
 - [goserve Framework](https://github.com/afteracademy/goserve)
 - [YouTube Channel](https://www.youtube.com/@afteracad)
 - [Article: Microservices Guide](https://afteracademy.com/article/how-to-create-microservices-a-practical-guide-using-go)
+
+---
+
+## Related Topics
+
+**Explore More Examples:**
+- [PostgreSQL Example →](/postgres/) - Relational database architecture
+- [MongoDB Example →](/mongo/) - Document database architecture
+- [Compare Architectures →](/compare) - Choose the right approach
+
+**Microservices Deep Dive:**
+- [Architecture Guide →](/micro/architecture) - System design and load balancing
+- [Configuration →](/micro/configuration) - Kong, NATS, and service setup
+- [Getting Started →](/micro/getting-started) - Step-by-step deployment
+
+**Additional Resources:**
+- [Troubleshooting →](/troubleshooting) - Common issues and solutions
+- [Core Concepts](/core-concepts) - Understanding goserve fundamentals
+- [API Documentation](https://documenter.getpostman.com/view/1552895/2sA3dxCWsa) - Try the API

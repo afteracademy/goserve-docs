@@ -4,6 +4,11 @@ layout: doc
 
 # goserve Example API - PostgreSQL
 
+[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://golang.org)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/afteracademy/goserve/blob/main/LICENSE)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-316192?style=flat&logo=postgresql)](https://www.postgresql.org)
+[![Redis](https://img.shields.io/badge/Redis-7+-DC382D?style=flat&logo=redis)](https://redis.io)
+
 **Production-Ready Go Backend Architecture**
 
 Build scalable REST APIs with PostgreSQL, Redis, JWT auth, and clean modular design.
@@ -78,3 +83,22 @@ x-api-key: your-api-key
 - [goserve Framework](https://github.com/afteracademy/goserve)
 - [YouTube Channel](https://www.youtube.com/@afteracad)
 - [Article](https://afteracademy.com/article/how-to-architect-good-go-backend-rest-api-services)
+
+---
+
+## Related Topics
+
+**Explore More Examples:**
+- [MongoDB Example →](/mongo/) - Document database architecture
+- [Microservices (gomicro) →](/micro/) - Distributed systems with Kong
+- [Compare Architectures →](/compare) - Choose the right approach
+
+**Learn the Framework:**
+- [Core Concepts](/core-concepts) - Understanding goserve fundamentals
+- [Architecture Guide](/architecture) - Framework design principles
+- [Configuration Reference](/configuration) - Complete config options
+
+**Additional Resources:**
+- [Troubleshooting →](/troubleshooting) - Common issues and solutions
+- [Getting Started Guide](/getting-started) - Framework installation
+- [API Documentation](https://documenter.getpostman.com/view/1552895/2sBXVihVLg) - Try the API

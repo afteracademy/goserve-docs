@@ -55,7 +55,7 @@ curl http://localhost:8080/health
 ### Step 6: Run Tests
 
 ```bash
-docker exec -t goserve_example_api_server_postgres go test -v ./...
+docker exec -t goserver-postgres go test -v ./...
 ```
 
 ## Local Development Setup

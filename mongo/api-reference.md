@@ -2,7 +2,7 @@
 
 Complete API endpoint reference for the goserve MongoDB blog platform. All endpoints require an API key in the `x-api-key` header.
 
-[![API Documentation](https://img.shields.io/badge/API%20Documentation-View%20Here-blue?style=for-the-badge)](https://documenter.getpostman.com/view/1552895/2sBXVihVLg)
+[![API Documentation](https://img.shields.io/badge/API%20Documentation-View%20Here-blue?style=for-the-badge)](https://documenter.getpostman.com/view/1552895/2sA3XWdefu)
 
 ## Base URL
 

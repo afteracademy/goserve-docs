@@ -28,6 +28,7 @@ export default defineConfig({
         {
           text: "Introduction",
           items: [
+            { text: "Overview", link: "/" },
             { text: "Getting Started", link: "/getting-started" },
             { text: "Installation", link: "/installation" },
           ],
@@ -41,15 +42,19 @@ export default defineConfig({
           ],
         },
         {
-          text: "Examples",
+          text: "Resources",
           items: [
-            { text: "PostgreSQL Example", link: "/postgres" },
-            { text: "MongoDB Example", link: "/mongo" },
+            { text: "Compare Architectures", link: "/compare" },
+            { text: "Troubleshooting", link: "/troubleshooting" },
           ],
         },
         {
-          text: "Microservices",
-          items: [{ text: "gomicro Guide", link: "/micro" }],
+          text: "Examples",
+          items: [
+            { text: "PostgreSQL Example", link: "/postgres/" },
+            { text: "MongoDB Example", link: "/mongo/" },
+            { text: "Microservices (gomicro)", link: "/micro/" },
+          ],
         },
       ],
       "/postgres/": [
@@ -84,7 +89,7 @@ export default defineConfig({
         {
           text: "gomicro Microservices",
           items: [
-            { text: "Overview", link: "/micro" },
+            { text: "Overview", link: "/micro/" },
             { text: "Getting Started", link: "/micro/getting-started" },
             { text: "Installation", link: "/micro/installation" },
             { text: "Architecture", link: "/micro/architecture" },
@@ -107,7 +112,7 @@ export default defineConfig({
 
     footer: {
       message: "Released under the Apache 2.0 License",
-      copyright: "Copyright © 2025 AfterAcademy",
+      copyright: "Copyright © 2026 AfterAcademy",
     },
 
     search: {
@@ -115,7 +120,14 @@ export default defineConfig({
     },
   },
 
-  head: [],
+  head: [
+    ['meta', { name: 'description', content: 'goserve - Production-ready Go backend framework with PostgreSQL, MongoDB, and microservices examples. Build scalable REST APIs with clean architecture.' }],
+    ['meta', { property: 'og:title', content: 'goserve Documentation' }],
+    ['meta', { property: 'og:description', content: 'Complete guide to building Go REST APIs with goserve framework - JWT auth, Redis caching, role-based access control' }],
+    ['meta', { property: 'og:type', content: 'website' }],
+    ['meta', { name: 'keywords', content: 'go, golang, rest api, backend framework, postgresql, mongodb, microservices, jwt, redis, docker' }],
+    ['link', { rel: 'icon', type: 'image/webp', href: '/images/logo.webp' }],
+  ],
 
   markdown: {
     lineNumbers: true,

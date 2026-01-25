@@ -164,7 +164,7 @@ goserve-example-api-server-mongo/
 ## Development Workflow
 
 ### Fast checks (recommended)
-- Tests: `docker exec -t goserve_example_api_server_mongo go test -v ./...` (or `go test -v ./...` locally)
+- Tests: `docker exec -t goserver-mongo go test -v ./...` (or `go test -v ./...` locally)
 - Health: `curl -H "x-api-key: $API_KEY" http://localhost:8080/health`
 - Seed reminder: ensure at least one API key exists before hitting protected routes.
 

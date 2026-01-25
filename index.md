@@ -91,6 +91,8 @@ goserve is built with industry-standard Go libraries:
 - **Viper** - Configuration management
 - **Crypto** - Cryptographic utilities
 
+**Latest Version:** v2.1.2
+
 ## Example Projects
 
 Learn by example with complete, production-ready implementations:
@@ -145,7 +147,7 @@ Ready to dive deeper? Check out our comprehensive documentation:
 
 ## Community & Resources
 
-- 🌟 **[GitHub Repository](https://github.com/afteracademy/goserve)** - Star us on GitHub (151+ stars)
+- 🌟 **[GitHub Repository](https://github.com/afteracademy/goserve)** - Star us on GitHub (154+ stars)
 - 📺 **[YouTube Channel](https://www.youtube.com/@afteracad)** - AfterAcademy tutorials and guides
 - 📖 **[Article](https://afteracademy.com/article/how-to-architect-good-go-backend-rest-api-services)** - Architecture deep dive
 - 💬 **[Discussions](https://github.com/afteracademy/goserve/discussions)** - Ask questions and share ideas
