@@ -1,8 +1,15 @@
 # API Reference
 
-Complete API endpoint reference for the goserve MongoDB blog platform. All endpoints require an API key in the `x-api-key` header.
+Complete API endpoint reference for the goserve MongoDB blog platform. All endpoints require an API key in the `x-api-key` header except `/health`.
 
 [![API Documentation](https://img.shields.io/badge/API%20Documentation-View%20Here-blue?style=for-the-badge)](https://documenter.getpostman.com/view/1552895/2sA3XWdefu)
+
+### API Key
+API Key `1D3F2DD1A5DE725DD4DF1D82BBB37` is created as default by this project through mongo init scripts.
+
+If your database is empty, create an entry in the `api_keys` collection.
+
+See [API key setup](/api-keys) for more details.
 
 ## Base URL
 
@@ -11,19 +18,64 @@ http://localhost:8080
 ```
 
 ## At a glance
-- **Auth**: `/auth/signup|signin|refresh|signout` (API key; JWT on refresh/signout)
-- **Samples**: `/sample`, `/sample/id/:id` (API key; write operations also need JWT)
-- **Public listing**: `/samples` for simple read access (API key)
 
-## Authentication
+- **Health**
+  - `/health`  
+  Public - no authentication — used for health checks
 
-All API requests require an API key:
+- **Authentication**
+  - `/auth/signup/basic`
+  - `/auth/signin/basic`
+  - `/auth/token/refresh`
+  - `/auth/signout`  
+  API key required - JWT required for refresh & signout
 
-```bash
-x-api-key: your-api-key-here
-```
+- **User / Profile**
+  - `/profile/id/:id`
+  - `/profile/mine`  
+  API key + JWT
 
-See [API key setup](/api-keys) for creating or reusing a key.
+- **Contact**
+  - `/contact`  
+  API key
+- **Blog – Author (write & workflow)**
+  - `/blog/author`
+  - `/blog/author/id/:id`
+  - `/blog/author/submit/:id`
+  - `/blog/author/withdraw/:id`
+  - `/blog/author/drafts`
+  - `/blog/author/submitted`
+  - `/blog/author/published`  
+  API key + JWT; author role required
+
+- **Blog – Editor (moderation & publishing)**
+  - `/blog/editor/id/:id`
+  - `/blog/editor/submitted`
+  - `/blog/editor/published`
+  - `/blog/editor/publish/id/:id`
+  - `/blog/editor/unpublish/id/:id`  
+  API key + JWT; editor role required
+
+- **Blog – Single content**
+  - `/blog/id/:id`
+  - `/blog/slug/:slug`  
+  API key
+
+- **Blogs – Public listings**
+  - `/blogs/latest`
+  - `/blogs/tag/:tag`
+  - `/blogs/similar/id/:id`  
+  API key; read-only access
+
+## Authentication model
+
+- **API Key (`x-api-key`)**
+  - Required for all endpoints except `/health`
+- **JWT (Bearer token)**
+  - Required for profile access, blog author/editor actions, token refresh, and signout
+- **Role-based access**
+  - Author routes require author role
+  - Editor routes require editor role
 
 ### Common errors
 | Code | Message (example) | When it happens | Fix |
@@ -33,41 +85,56 @@ See [API key setup](/api-keys) for creating or reusing a key.
 | 422 | validation error: ... | Invalid request payload | Correct the request body |
 | 500 | something went wrong | Server-side error | Check service logs and retry |
 
-## Sample API
+## Blog/Blogs API
 
-**Base Path:** `/sample`
+### Get latest Blogs
 
-### Get All Samples
-
-Get a list of all samples.
+Get a list of latest blogs paginated.
 
 ```http
-GET /sample
+GET /blogs/latest?page=1&limit=10
 ```
 
 **Response:**
 ```json
 {
-  "success": true,
-  "message": "Samples retrieved successfully",
+  "code": "10000",
+  "status": 200,
+  "message": "success",
   "data": [
     {
-      "_id": "507f1f77bcf86cd799439011",
-      "field": "Sample Document 1",
-      "status": true,
-      "createdAt": "2024-01-15T10:30:00Z",
-      "updatedAt": "2024-01-15T10:30:00Z"
+      "_id": "667846dffa51e5414d99f748",
+      "title": "Test Title 2",
+      "description": "Test Description 2",
+      "slug": "test-url-2",
+      "score": 0.01,
+      "tags": [
+        "GO",
+        "CLI"
+      ]
+    },
+    {
+      "_id": "66784670fa51e5414d99f747",
+      "title": "Test Title",
+      "description": "Test Description",
+      "slug": "test-url",
+      "imgUrl": "https://janisharali.com/assets/ali-cover.png",
+      "score": 0.01,
+      "tags": [
+        "GO",
+        "BACKEND"
+      ]
     }
   ]
 }
 ```
 
-### Get Sample by ID
+### Get Blog by ID
 
-Get a specific sample by its MongoDB ObjectID.
+Get a specific blog by its MongoDB ObjectID.
 
 ```http
-GET /sample/id/{id}
+GET /blog/id/{id}
 ```
 
 **Parameters:**
@@ -76,24 +143,36 @@ GET /sample/id/{id}
 **Response:**
 ```json
 {
-  "success": true,
-  "message": "Sample retrieved successfully",
+  "code": "10000",
+  "status": 200,
+  "message": "success",
   "data": {
-    "_id": "507f1f77bcf86cd799439011",
-    "field": "Sample Document 1",
-    "status": true,
-    "createdAt": "2024-01-15T10:30:00Z",
-    "updatedAt": "2024-01-15T10:30:00Z"
+    "_id": "66784670fa51e5414d99f747",
+    "title": "Test Title",
+    "description": "Test Description",
+    "text": "<p>draft</p>",
+    "slug": "test-url",
+    "author": {
+      "_id": "6678463efa51e5414d99f745",
+      "name": "Janishar Ali"
+    },
+    "imgUrl": "https://janisharali.com/assets/ali-cover.png",
+    "score": 0.01,
+    "tags": [
+      "GO",
+      "BACKEND"
+    ],
+    "publishedAt": "2024-06-23T16:03:26.851Z"
   }
 }
 ```
 
-### Create Sample
+### Create Blog
 
-Create a new sample document.
+Create a new blog document.
 
 ```http
-POST /sample
+POST /blog/author
 ```
 
 **Headers:**
@@ -105,37 +184,58 @@ x-api-key: your-api-key
 **Request Body:**
 ```json
 {
-  "field": "New Sample Document",
-  "status": true
+	"title": "Test Title",
+	"description": "Test Description",
+	"draftText": "<p>draft</p>",
+	"slug": "test-url",
+	"imgUrl": "https://example/assets/image.png",
+	"tags": [
+			"GO",
+			"BACKEND"
+	]
 }
 ```
 
 **Response:**
 ```json
 {
-  "success": true,
-  "message": "Sample created successfully",
+  "code": "10000",
+  "status": 200,
+  "message": "blog created successfully",
   "data": {
-    "_id": "507f1f77bcf86cd799439011",
-    "field": "New Sample Document",
-    "status": true,
-    "createdAt": "2024-01-15T10:30:00Z",
-    "updatedAt": "2024-01-15T10:30:00Z"
+    "_id": "66784670fa51e5414d99f747",
+    "title": "Test Title",
+    "description": "Test Description",
+    "draftText": "<p>draft</p>",
+    "slug": "test-url",
+    "author": {
+      "_id": "6678463efa51e5414d99f745",
+      "name": "Janishar Ali"
+    },
+    "score": 0.01,
+    "tags": [
+      "GO",
+      "BACKEND"
+    ],
+    "submitted": false,
+    "drafted": true,
+    "published": false,
+    "createdAt": "2024-06-23T15:59:44.942Z",
+    "updatedAt": "2024-06-23T15:59:44.942Z"
   }
 }
 ```
 
-### Update Sample
+### Update Blog
 
-Update an existing sample document.
+Update an existing blog document.
 
 ```http
-PUT /sample/id/{id}
+PUT /blog/author/id/{id}
 ```
 
 **Parameters:**
-- `id` (string, required) - MongoDB ObjectID of the sample
-
+- `id` (string, required) - MongoDB ObjectID of the blog
 **Headers:**
 ```
 Authorization: Bearer <jwt_token>
@@ -145,37 +245,60 @@ x-api-key: your-api-key
 **Request Body:**
 ```json
 {
-  "field": "Updated Sample Document",
-  "status": false
+	"_id": "66784670fa51e5414d99f747",
+	"title": "Test Title",
+	"description": "Test Description",
+	"draftText": "<p>draft</p>",
+	"slug": "test-url-2",
+	"imgUrl": "https://janisharali.com/assets/ali-cover.png",
+	"tags": [
+			"GO",
+			"BACKEND"
+	]
 }
 ```
 
 **Response:**
 ```json
 {
-  "success": true,
-  "message": "Sample updated successfully",
+  "code": "10000",
+  "status": 200,
+  "message": "blog updated successfully",
   "data": {
-    "_id": "507f1f77bcf86cd799439011",
-    "field": "Updated Sample Document",
-    "status": false,
-    "createdAt": "2024-01-15T10:30:00Z",
-    "updatedAt": "2024-01-15T10:35:00Z"
+    "_id": "66784670fa51e5414d99f747",
+    "title": "Test Title",
+    "description": "Test Description",
+    "draftText": "<p>draft</p>",
+    "slug": "test-url-2",
+    "author": {
+      "_id": "6678463efa51e5414d99f745",
+      "name": "Janishar Ali"
+    },
+    "imgUrl": "https://janisharali.com/assets/ali-cover.png",
+    "score": 0.01,
+    "tags": [
+      "GO",
+      "BACKEND"
+    ],
+    "submitted": false,
+    "drafted": true,
+    "published": false,
+    "createdAt": "2024-06-23T15:59:44.942Z",
+    "updatedAt": "2024-06-23T16:00:57.677Z"
   }
 }
 ```
 
-### Delete Sample
+### Delete Blog
 
-Delete a sample document.
+Delete a blog document.
 
 ```http
-DELETE /sample/id/{id}
+DELETE /blog/author/id/{id}
 ```
 
 **Parameters:**
-- `id` (string, required) - MongoDB ObjectID of the sample
-
+- `id` (string, required) - MongoDB ObjectID of the blog
 **Headers:**
 ```
 Authorization: Bearer <jwt_token>
@@ -185,8 +308,9 @@ x-api-key: your-api-key
 **Response:**
 ```json
 {
-  "success": true,
-  "message": "Sample deleted successfully"
+  "code": "10000",
+  "status": 200,
+  "message": "blog deleted successfully"
 }
 ```
 
@@ -205,29 +329,34 @@ POST /auth/signup/basic
 **Request Body:**
 ```json
 {
-  "name": "John Doe",
-  "email": "john@example.com",
-  "password": "securepassword123"
+	"email": "ali@afteracademy.com",
+	"password": "123456",
+	"name": "Janishar Ali"
 }
 ```
 
 **Response:**
 ```json
 {
-  "success": true,
-  "message": "User created successfully",
+  "code": "10000",
+  "status": 200,
+  "message": "success",
   "data": {
     "user": {
-      "id": "507f1f77bcf86cd799439011",
-      "name": "John Doe",
-      "email": "john@example.com",
-      "role": "LEARNER",
-      "verified": false
+      "_id": "66784450751bd4db00490891",
+      "email": "ali@afteracademy.com",
+      "name": "Janishar Ali",
+      "roles": [
+        {
+          "_id": "66784418b8c142336899ea79",
+          "code": "LEARNER"
+        }
+      ]
     },
-    "access_token": "eyJhbGciOiJSUzI1NiIs...",
-    "refresh_token": "eyJhbGciOiJSUzI1NiIs...",
-    "token_type": "Bearer",
-    "expires_in": 900
+    "tokens": {
+      "accessToken": "...",
+      "refreshToken": "..."
+    }
   }
 }
 ```
@@ -243,28 +372,33 @@ POST /auth/signin/basic
 **Request Body:**
 ```json
 {
-  "email": "john@example.com",
-  "password": "securepassword123"
+	"email": "ali@afteracademy.com",
+	"password": "123456"
 }
 ```
 
 **Response:**
 ```json
 {
-  "success": true,
-  "message": "Sign in successful",
+  "code": "10000",
+  "status": 200,
+  "message": "success",
   "data": {
     "user": {
-      "id": "507f1f77bcf86cd799439011",
-      "name": "John Doe",
-      "email": "john@example.com",
-      "role": "LEARNER",
-      "verified": false
+      "_id": "66784450751bd4db00490891",
+      "email": "ali@afteracademy.com",
+      "name": "Janishar Ali",
+      "roles": [
+        {
+          "_id": "66784418b8c142336899ea79",
+          "code": "LEARNER"
+        }
+      ]
     },
-    "access_token": "eyJhbGciOiJSUzI1NiIs...",
-    "refresh_token": "eyJhbGciOiJSUzI1NiIs...",
-    "token_type": "Bearer",
-    "expires_in": 900
+    "tokens": {
+      "accessToken": "...",
+      "refreshToken": "..."
+    }
   }
 }
 ```
@@ -280,33 +414,33 @@ POST /auth/refresh
 **Request Body:**
 ```json
 {
-  "refresh_token": "eyJhbGciOiJSUzI1NiIs..."
+  "refresh_token": "..."
 }
 ```
 
 **Response:**
 ```json
 {
-  "success": true,
-  "message": "Token refreshed successfully",
+  "code": "10000",
+  "status": 200,
+  "message": "success",
   "data": {
-    "access_token": "eyJhbGciOiJSUzI1NiIs...",
-    "token_type": "Bearer",
-    "expires_in": 900
+    "accessToken": "...",
+    "refreshToken": "..."
   }
 }
 ```
 
 ## User API
 
-**Base Path:** `/user`
+**Base Path:** `/profile`
 
 ### Get Current User
 
 Get information about the currently authenticated user.
 
 ```http
-GET /user/me
+GET /profile/mine
 ```
 
 **Headers:**
@@ -318,15 +452,31 @@ x-api-key: your-api-key
 **Response:**
 ```json
 {
-  "success": true,
-  "message": "User retrieved successfully",
+  "code": "10000",
+  "status": 200,
+  "message": "success",
   "data": {
-    "id": "507f1f77bcf86cd799439011",
-    "name": "John Doe",
-    "email": "john@example.com",
-    "role": "LEARNER",
-    "verified": true,
-    "createdAt": "2024-01-15T10:00:00Z"
+    "_id": "66784633949a981aad99ea7d",
+    "email": "admin@unusualcode.org",
+    "name": "Admin",
+    "roles": [
+      {
+        "_id": "66784633949a981aad99ea79",
+        "code": "LEARNER"
+      },
+      {
+        "_id": "66784633949a981aad99ea7a",
+        "code": "WRITER"
+      },
+      {
+        "_id": "66784633949a981aad99ea7b",
+        "code": "EDITOR"
+      },
+      {
+        "_id": "66784633949a981aad99ea7c",
+        "code": "ADMIN"
+      }
+    ]
   }
 }
 ```
@@ -346,9 +496,13 @@ GET /health
 **Response:**
 ```json
 {
-  "status": "ok",
-  "timestamp": "2024-01-15T10:30:00Z",
-  "version": "1.0.0"
+  "code": "10000",
+  "status": 200,
+  "message": "success",
+  "data": {
+    "timestamp": "2026-01-25T06:45:17.228713387Z",
+    "status": "OK"
+  }
 }
 ```
 
@@ -358,35 +512,20 @@ All API errors follow a consistent format:
 
 ```json
 {
-  "success": false,
-  "error": "Bad Request",
-  "message": "Validation failed",
-  "details": {
-    "field": "email",
-    "reason": "must be a valid email address"
-  }
+  "code": "10001",
+  "status": 400,
+  "message": "Validation failed"
 }
 ```
 
 ### Common HTTP Status Codes
 
 - `200` - Success
-- `201` - Created
 - `400` - Bad Request (validation errors)
 - `401` - Unauthorized (missing/invalid authentication)
 - `403` - Forbidden (insufficient permissions)
 - `404` - Not Found (resource doesn't exist)
-- `409` - Conflict (resource already exists)
-- `422` - Unprocessable Entity (validation failed)
 - `500` - Internal Server Error (server error)
-
-## Rate Limiting
-
-API endpoints are rate limited to prevent abuse. Default limits:
-
-- **Authenticated requests**: 100 requests per minute
-- **Unauthenticated requests**: 10 requests per minute
-- **Health checks**: Unlimited
 
 ## Data Types
 
@@ -411,97 +550,7 @@ Users can have the following roles:
 - `EDITOR` - Can edit and publish content
 - `ADMIN` - Full system access
 
-## SDK Examples
+## Next
 
-### JavaScript/TypeScript
-
-```javascript
-// Initialize client
-const apiClient = {
-  baseURL: 'http://localhost:8080',
-  apiKey: 'your-api-key-here'
-};
-
-// Create sample
-const createSample = async (field, status) => {
-  const response = await fetch(`${apiClient.baseURL}/sample`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiClient.apiKey,
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify({ field, status })
-  });
-
-  return response.json();
-};
-
-// Get samples
-const getSamples = async () => {
-  const response = await fetch(`${apiClient.baseURL}/sample`, {
-    headers: {
-      'x-api-key': apiClient.apiKey
-    }
-  });
-
-  return response.json();
-};
-```
-
-### Go Client
-
-```go
-package main
-
-import (
-    "bytes"
-    "encoding/json"
-    "net/http"
-)
-
-type APIClient struct {
-    BaseURL string
-    APIKey  string
-    Client  *http.Client
-}
-
-func NewAPIClient(baseURL, apiKey string) *APIClient {
-    return &APIClient{
-        BaseURL: baseURL,
-        APIKey:  apiKey,
-        Client:  &http.Client{},
-    }
-}
-
-func (c *APIClient) CreateSample(field string, status bool, token string) (map[string]interface{}, error) {
-    data := map[string]interface{}{
-        "field":  field,
-        "status": status,
-    }
-    body, _ := json.Marshal(data)
-
-    req, _ := http.NewRequest("POST", c.BaseURL+"/sample", bytes.NewBuffer(body))
-    req.Header.Set("x-api-key", c.APIKey)
-    req.Header.Set("Content-Type", "application/json")
-    if token != "" {
-        req.Header.Set("Authorization", "Bearer "+token)
-    }
-
-    resp, err := c.Client.Do(req)
-    if err != nil {
-        return nil, err
-    }
-    defer resp.Body.Close()
-
-    var result map[string]interface{}
-    json.NewDecoder(resp.Body).Decode(&result)
-    return result, nil
-}
-```
-
-## Next Steps
-
-- Try the [Getting Started](/mongo/getting-started) guide to run the API
-- Learn about [Architecture](/mongo/architecture) for implementation details
-- Review [Configuration](/mongo/configuration) for setup options
+- Try the [goserve Postgres Example](/postgres)
+- Explore [goserve Microservice Example](/micro)
