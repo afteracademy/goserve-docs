@@ -15,6 +15,7 @@ This guide covers the fundamental concepts and patterns used in the goserve fram
 - [Validation](#validation)
 - [Database Connections](#database-connections)
 - [Caching](#caching)
+- [Extend a Feature](#extend-a-feature)
 
 ---
 
@@ -916,6 +917,21 @@ s.cache.Set(blogKey, blogData, blogCacheTTL)
 - **Write-Behind**: Update DB, invalidate cache (simpler)
 - **Time-Based Expiration**: Automatic cache invalidation
 - **Manual Invalidation**: Explicit cache clearing on updates
+
+---
+
+## Extend a Feature
+
+Minimal steps to add a new feature (mirrors the generators in the example repos):
+
+1. Create `api/<feature>/` with `dto`, `model`, `service.go`, `controller.go`.
+2. Define DTOs with validation tags for request/response contracts.
+3. Add models and migrations/indexes for the storage you use.
+4. Implement the service: business rules, cache-aside reads, transactions.
+5. Implement the controller: mount routes, parse DTOs, attach auth/role middleware.
+6. Wire dependencies in `startup/module.go` (construct service + controller, register routes).
+7. Add tests: service unit tests + integration via `startup.TestServer()` helpers.
+8. Update docs and env defaults if new configuration is introduced.
 
 ---
 

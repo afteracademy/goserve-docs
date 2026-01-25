@@ -6,6 +6,20 @@ Configure the goserve framework components for your application.
 
 goserve uses a comprehensive configuration system that supports environment variables, configuration files, and type-safe configuration structs. The framework is designed for production deployments with secure credential management and database connection pooling.
 
+### Operations quick reference
+- **Health**: `GET /health` (liveness) is available in all sample repos; use for k8s/Docker healthchecks.
+- **Readiness**: wait for DB + Redis to be up before routing traffic; in Docker Compose examples, rely on `depends_on` and retriable connections in startup.
+- **Profiles**: docker-compose supports standard and load-balanced (gomicro) files; pick the file that matches your topology.
+- **Secrets**: store JWT keys and passwords outside the repo; samples generate RSA keys via `.tools/rsa/keygen.go` and copy envs via `.tools/copy/envs.go`.
+
+### Environment matrix (quick reference)
+
+| Mode | DB_HOST | REDIS_HOST | SERVER_PORT | Notes |
+| --- | --- | --- | --- | --- |
+| Docker Compose (examples) | postgres / mongo / auth-service | redis | 8080 (mono), 8000 (gomicro) | Use service names from compose files |
+| Local development | localhost | localhost | 8080 | Keep DB/Redis running (containers or local installs) |
+| CI / tests | pipeline-specific | pipeline-specific | configurable | Mirror `.test.env`; ensure services are reachable from runners |
+
 ## Network Configuration
 
 ### Controller Configuration

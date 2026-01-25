@@ -6,6 +6,8 @@ layout: doc
 
 **Complete Microservices Implementation with Kong API Gateway**
 
+![Gomicro banner](/images/gomicro-banner.png)
+
 Build distributed systems with Kong, NATS messaging, MongoDB, Redis, JWT authentication, and service discovery.
 
 ## Quick Links

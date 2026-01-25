@@ -34,6 +34,30 @@ git --version
 
 ## Quick Start
 
+Shortest path to a live API (copy/paste):
+
+```bash
+git clone https://github.com/afteracademy/goserve-example-api-server-postgres.git
+cd goserve-example-api-server-postgres
+go run .tools/rsa/keygen.go && go run .tools/copy/envs.go
+docker compose up --build -d
+# create an API key for local use (replace the value if you prefer)
+export API_KEY=dev-$(openssl rand -hex 6)
+docker compose exec postgres \
+  psql -U goserve_example_user -d goserve_example_db \
+  -c "INSERT INTO api_keys (key, permissions, comments, version) VALUES ('$API_KEY', '{\"GENERAL\"}', '{\"local dev\"}', 1);"
+curl -H "x-api-key: $API_KEY" http://localhost:8080/health
+```
+
+Need more options? See [API key setup](/api-keys).
+
+### Fast checks (recommended)
+- Tests: `docker exec -t goserve_example_api_server_postgres go test -v ./...` (or `go test -v ./...` locally)
+- Health: `curl -H "x-api-key: $API_KEY" http://localhost:8080/health`
+- Seed reminder: ensure at least one API key exists before calling auth/blog routes.
+
+If you prefer step-by-step, read on.
+
 ### 1. Clone the Repository
 
 ```bash
@@ -76,24 +100,33 @@ The API will be available at: `http://localhost:8080`
 Check the health of your API:
 
 ```bash
-curl http://localhost:8080/health
+curl -H "x-api-key: $API_KEY" http://localhost:8080/health
 ```
 
 ## Your First API Request
 
-### 1. Get an API Key
+### 1. Create an API Key
 
-The repository includes example API keys in the database initialization. For testing, use:
+Fresh databases do **not** include a seeded API key. Create one before making requests:
 
-```
-x-api-key: GCMUDiuY56h2
+```bash
+export API_KEY=dev-$(openssl rand -hex 6)
+
+# If using Docker Compose (default credentials from .env.example)
+docker compose exec postgres \
+  psql -U goserve_example_user -d goserve_example_db \
+  -c "INSERT INTO api_keys (key, permissions, comments, version) VALUES ('$API_KEY', '{\"GENERAL\"}', '{\"docs\"}', 1);"
+
+# If connecting directly with psql
+# psql -h localhost -p 5432 -U goserve_example_user -d goserve_example_db \
+#   -c "INSERT INTO api_keys (key, permissions, comments, version) VALUES ('$API_KEY', '{\"GENERAL\"}', '{\"docs\"}', 1);"
 ```
 
 ### 2. Create a User Account
 
 ```bash
 curl -X POST http://localhost:8080/auth/signup/basic \
-  -H "x-api-key: GCMUDiuY56h2" \
+  -H "x-api-key: $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "John Doe",
@@ -127,7 +160,7 @@ Response:
 
 ```bash
 curl -X POST http://localhost:8080/auth/signin/basic \
-  -H "x-api-key: GCMUDiuY56h2" \
+  -H "x-api-key: $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "john@example.com",
@@ -141,7 +174,7 @@ Use the `accessToken` from signup/signin:
 
 ```bash
 curl -X POST http://localhost:8080/blog/author \
-  -H "x-api-key: GCMUDiuY56h2" \
+  -H "x-api-key: $API_KEY" \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -165,6 +198,10 @@ docker exec -t goserve_example_api_server_postgres go test -v ./...
 # If running locally
 go test -v ./...
 ```
+
+## Observability
+- Health endpoint: `GET /health` on port 8080
+- Logs: `docker compose logs -f api` or the local process output
 
 ## Development Workflow
 

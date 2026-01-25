@@ -20,6 +20,21 @@ Before you begin, ensure you have the following installed:
 
 ## Quick Start
 
+Fast path (standard mode):
+
+```bash
+git clone https://github.com/afteracademy/gomicro.git
+cd gomicro
+go run .tools/rsa/keygen.go && go run .tools/copy/envs.go
+docker compose up --build -d
+export API_KEY=your-api-key
+curl -H "x-api-key: $API_KEY" http://localhost:8000/health
+```
+
+For multiple instances, use the load-balanced compose file below.
+
+API key guidance: [API key setup](/api-keys) (ensure the auth service stores the key Kong validates).
+
 ### 1. Clone the Repository
 
 ```bash
@@ -69,7 +84,7 @@ Check that all services are running:
 
 ```bash
 # Health check
-curl http://localhost:8000/health
+curl -H "x-api-key: $API_KEY" http://localhost:8000/health
 
 # Should return: {"status": "ok"}
 ```
@@ -90,7 +105,7 @@ gomicro runs multiple services:
 
 ### 1. Get an API Key
 
-The system uses API keys for initial access. Check the database initialization scripts for default keys.
+The system uses API keys for initial access. Ensure the auth service stores the key Kong validates. See [API key setup](/api-keys) for options.
 
 ### 2. Create a User Account
 
@@ -171,6 +186,11 @@ docker exec -t gomicro_auth-service_1 go test -v ./...
 docker exec -t gomicro_blog-service_1 go test -v ./...
 ```
 
+### Fast checks (recommended)
+- Health: `curl -H "x-api-key: $API_KEY" http://localhost:8000/health`
+- Kong plugin: verify `apikey-auth` plugin is enabled and points to auth-service
+- Seed reminder: ensure the auth service holds the API key Kong expects.
+
 ### Service Logs
 
 ```bash
@@ -186,6 +206,10 @@ For local development without Docker:
 
 1. Start PostgreSQL, MongoDB, Redis, and NATS locally
 2. Update `.env` files to point to `localhost` instead of service names
+
+## Observability
+- Gateway health: `GET /health` on port 8000 (via Kong)
+- Logs: `docker compose logs -f kong auth-service blog-service`
 3. Run services individually:
 
 ```bash

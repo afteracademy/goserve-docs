@@ -6,6 +6,27 @@ Understanding the goserve framework architecture and design patterns.
 
 goserve is built on a **layered, feature-based architecture** that promotes clean code, separation of concerns, and testability. The framework emphasizes each API being independent while sharing common services, reducing code conflicts in team environments.
 
+### Why goserve
+- **Production-ready defaults**: API key + JWT, role checks, structured errors, and cache-aside baked in.
+- **Feature-first design**: Modules stay isolated, making refactors and scaling straightforward.
+- **Practical starters**: Examples ship with tests, Docker, and codegen helpers for fast onboarding.
+
+### Request lifecycle (field-tested in examples)
+1) **Gateway/middleware**: CORS, logging, panic recovery, optional API-key check
+2) **Authentication**: JWT (RSA) verification and keystore hydration
+3) **Authorization**: Role checks per route
+4) **Controller**: Parse DTOs, route params, and hand off to service
+5) **Service**: Cache-aside reads, transactional writes, outbound calls/events
+6) **Response**: Consistent success/error envelopes
+
+![Request-Response design diagram showing middleware, controller, service, and database flow](/images/request-flow.svg)
+
+### Security layers used in the repos and articles
+- **API key** at the edge (Kong plugin in gomicro, Gin middleware in mono examples)
+- **JWT (RS256)** for user identity; refresh + access tokens
+- **Role codes** (`LEARNER`, `AUTHOR`, `EDITOR`, `ADMIN`) enforced in middleware
+- **Input validation** via DTO tags and centralized error mapping
+
 ## Core Principles
 
 1. **Feature Independence** - Each API feature is organized in separate directories by endpoint

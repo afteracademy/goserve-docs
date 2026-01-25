@@ -6,6 +6,8 @@ layout: doc
 
 **Production-Ready Go Backend Architecture with MongoDB**
 
+![Goserve banner](/images/goserve-banner.png)
+
 Build scalable REST APIs with MongoDB, Redis, JWT auth, and clean modular design.
 
 ## Quick Links

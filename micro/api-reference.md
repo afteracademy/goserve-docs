@@ -2,11 +2,18 @@
 
 Complete API endpoint reference for the gomicro microservices system. All endpoints require an API key in the `x-api-key` header.
 
+[![API Documentation](https://img.shields.io/badge/API%20Documentation-View%20Here-blue?style=for-the-badge)](https://documenter.getpostman.com/view/1552895/2sBXVihVLg)
+
 ## Base URL
 
 ```
 http://localhost:8000
 ```
+
+## At a glance
+- **Auth service**: `/auth/signup|signin|refresh|verify/apikey` (API key; JWT where noted)
+- **Blog service**: `/blog` public reads; `/blog/author|editor` protected (API key + JWT + role)
+- **Gateway**: Kong enforces API key via plugin before forwarding to services
 
 ## Authentication
 
@@ -16,11 +23,21 @@ All API requests require an API key:
 x-api-key: your-api-key-here
 ```
 
+See [API key setup](/api-keys) for generating and storing the key Kong validates.
+
 Protected endpoints additionally require JWT Bearer token:
 
 ```bash
 Authorization: Bearer <access_token>
 ```
+
+### Common errors
+| Code | Message (example) | When it happens | Fix |
+| --- | --- | --- | --- |
+| 401 | permission denied: missing x-api-key header | Request lacked API key | Add `x-api-key: $API_KEY` |
+| 403 | permission denied: invalid x-api-key | Kong/auth-service rejected key | Ensure the key exists in auth store and matches plugin config |
+| 422 | validation error: ... | Invalid payload | Fix request body or params |
+| 500 | something went wrong | Downstream service error | Check service logs (auth/blog) and retry |
 
 ## Auth Service APIs
 

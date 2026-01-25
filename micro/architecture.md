@@ -6,6 +6,11 @@ Understanding the gomicro microservices architecture and design patterns.
 
 gomicro demonstrates a complete microservices implementation using the goserve micro framework. The project breaks down a monolithic blog application into independent services that communicate via NATS messaging, orchestrated through Kong API gateway.
 
+### Why this stack
+- Gateway-first: Kong + custom plugin handles API keys, routing, and rate limiting.
+- Event-ready: NATS patterns shown alongside REST for cross-service workflows.
+- Polyglot data: Postgres for auth, Mongo for blogs, illustrating per-service storage choices.
+
 ### Core Principles
 
 1. **Service Independence** - Each service runs independently with its own database and cache
@@ -16,24 +21,15 @@ gomicro demonstrates a complete microservices implementation using the goserve m
 
 ## System Architecture
 
-```
-Internet/External Clients
-    ↓
-Kong API Gateway (Port 8000)
-    ↓ Custom Go Plugin (API Key Auth)
-    ↓ Routes requests to services
-┌─────────────────┐    NATS Messaging    ┌─────────────────┐
-│  auth-service   │◄──────────────────►│  blog-service   │
-│   PostgreSQL    │                     │    MongoDB      │
-│    Redis        │                     │    Redis        │
-│   (Port 8001)   │                     │   (Port 8002)   │
-└─────────────────┘                     └─────────────────┘
-        ↓                                       ↓
-   Database Layer                         Database Layer
-   (Users, Roles, API Keys)               (Blogs, Comments)
-```
+### Without Load Balancing
 
-## Service Architecture
+![System architecture without load balancing](/images/system.png)
+
+### With Load Balancing
+
+![System architecture with load balancing](/images/system-load-balanced.png)
+
+## Deployment Configurations
 
 ### Kong API Gateway
 

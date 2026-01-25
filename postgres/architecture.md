@@ -6,6 +6,11 @@ Understanding the goserve example API architecture and design patterns.
 
 The goserve PostgreSQL example demonstrates a complete **production-ready REST API** built with the goserve framework. It follows a **feature-based modular architecture** where each API endpoint is organized into self-contained modules with clear separation of concerns, JWT authentication, role-based authorization, and comprehensive testing.
 
+### Why this stack
+- End-to-end starter: API key edge, JWT, roles, cache-aside, and pgx transactions all wired.
+- Battle-tested workflows: author/editor/blog flows with integration tests and seed scripts.
+- Easy to extend: codegen helpers and clear module boundaries for adding features safely.
+
 ### Core Principles
 
 1. **Feature Independence** - Each API feature is isolated in its own directory

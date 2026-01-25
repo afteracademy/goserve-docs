@@ -6,6 +6,11 @@ Understanding the goserve MongoDB example API architecture and design patterns.
 
 The goserve MongoDB example demonstrates a complete **production-ready REST API** built with the goserve framework using MongoDB as the primary database. It follows a **feature-based modular architecture** where each API endpoint is organized into self-contained modules with clear separation of concerns, JWT authentication, and comprehensive testing.
 
+### Why this stack
+- Document-first: flexible schemas with DTO validation and cache-aside Redis support.
+- Same security posture: API key edge + JWT + roles mirroring the Postgres example.
+- Lean starter: minimal surface area to prototype quickly while keeping tests and Docker.
+
 ### Core Principles
 
 1. **Feature Independence** - Each API feature is isolated in its own directory
@@ -96,47 +101,27 @@ Root Middleware (Global - applied to all routes)
 └── Not Found Handler - 404 for undefined routes
   ↓
 Router (Gin Engine)
-  ↓
-Feature Route Group (/sample)
-  ↓
-Authentication Middleware (JWT - if route requires auth)
-├── Extract Bearer Token - From Authorization header
-├── Verify RSA Signature - Using public key
-├── Validate Claims - Check expiry, issuer, etc.
-├── Load User from Database - Fetch user details
-└── Set User Context - Store user in request context
-  ↓
-Authorization Middleware (Roles - if route requires specific roles)
-├── Get User from Context - Retrieve authenticated user
-├── Check Required Roles - Compare with route requirements
-├── Validate Permissions - Role-based access control
-└── Allow/Deny Access - Proceed or return 403
-  ↓
-Controller Handler (sample.controller.getSampleHandler)
-├── Parse Request Parameters - Extract ID from URL
-├── Validate Input - Parameter validation
-└── Call Service Method - Delegate to business logic
-  ↓
-Service Layer (Business Logic)
-├── Query Construction - Build MongoDB queries
-├── Parameter Binding - Bind query parameters
-├── Database Operations - Execute MongoDB operations
-├── Cache Operations - Redis cache get/set/invalidate
-└── Result Mapping - Map MongoDB documents to DTOs
-  ↓
-Database/External Services
-  ↓
-Response Formatting
-├── Success Response (200-299)
-│   ├── network.SendSuccessDataResponse()
-│   └── Include requested data
-├── Client Error Response (400-499)
-│   ├── network.SendBadRequestError() - Validation errors
-│   ├── network.SendUnauthorizedError() - Auth failures
-│   └── network.SendNotFoundError() - Resource not found
-└── Server Error Response (500-599)
-    └── network.SendInternalServerError() - System errors
 ```
+
+## API Design
+
+![Request-Response design diagram showing middleware, controller, service, and database flow](/images/request-flow.svg)
+
+The API follows a layered request-response pattern with proper error handling and middleware chains.
+
+### Request Flow
+
+```
+HTTP Request (e.g., GET /sample/id/123)
+  ↓
+Root Middleware (Global - applied to all routes)
+├── Error Recovery - Catch panics and return 500
+├── API Key Validation - For external service calls
+├── CORS Headers - Cross-origin resource sharing
+├── Request Logging - Structured logging
+└── Not Found Handler - 404 for undefined routes
+  ↓
+Router (Gin Engine)
 
 ## Layer Responsibilities
 

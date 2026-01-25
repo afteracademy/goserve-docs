@@ -2,11 +2,20 @@
 
 Complete API endpoint reference for the goserve blog platform. All endpoints require an API key in the `x-api-key` header unless otherwise noted.
 
+[![API Documentation](https://img.shields.io/badge/API%20Documentation-View%20Here-blue?style=for-the-badge)](https://documenter.getpostman.com/view/1552895/2sBXVihVLg)
+
 ## Base URL
 
 ```
 http://localhost:8080
 ```
+
+## At a glance
+- **Auth**: `/auth/signup|signin|refresh|signout` (API key; JWT on refresh/signout)
+- **Profile/User**: `/profile`, `/user` (API key; some routes JWT + role)
+- **Blog public**: `/blogs`, `/blog/id/:id` (API key)
+- **Author/editor**: `/blog/author`, `/blog/editor` (API key + JWT + role)
+- **Admin**: `/admin/*` (API key + JWT + ADMIN role)
 
 ## Authentication
 
@@ -15,6 +24,16 @@ All API requests require an API key:
 ```bash
 x-api-key: your-api-key-here
 ```
+
+> No API key is seeded by default. Generate one following the steps in [Getting Started](/postgres/getting-started#1-create-an-api-key) or see [API key setup](/api-keys), then reuse that value in the examples below.
+
+### Common errors
+| Code | Message (example) | When it happens | Fix |
+| --- | --- | --- | --- |
+| 401 | permission denied: missing x-api-key header | No `x-api-key` header present | Add `x-api-key: $API_KEY` |
+| 403 | permission denied: invalid x-api-key | Key not found/disabled | Create or use a valid key (see setup above) |
+| 422 | validation error: ... | Invalid or missing fields | Fix request body or query params |
+| 500 | something went wrong | Server-side error | Check logs; retry after investigating |
 
 Protected endpoints additionally require JWT Bearer token:
 

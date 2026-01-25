@@ -2,11 +2,18 @@
 
 Complete API endpoint reference for the goserve MongoDB blog platform. All endpoints require an API key in the `x-api-key` header.
 
+[![API Documentation](https://img.shields.io/badge/API%20Documentation-View%20Here-blue?style=for-the-badge)](https://documenter.getpostman.com/view/1552895/2sBXVihVLg)
+
 ## Base URL
 
 ```
 http://localhost:8080
 ```
+
+## At a glance
+- **Auth**: `/auth/signup|signin|refresh|signout` (API key; JWT on refresh/signout)
+- **Samples**: `/sample`, `/sample/id/:id` (API key; write operations also need JWT)
+- **Public listing**: `/samples` for simple read access (API key)
 
 ## Authentication
 
@@ -15,6 +22,16 @@ All API requests require an API key:
 ```bash
 x-api-key: your-api-key-here
 ```
+
+See [API key setup](/api-keys) for creating or reusing a key.
+
+### Common errors
+| Code | Message (example) | When it happens | Fix |
+| --- | --- | --- | --- |
+| 401 | permission denied: missing x-api-key header | No `x-api-key` header | Add `x-api-key: $API_KEY` |
+| 403 | permission denied: invalid x-api-key | Key not found/disabled | Insert or use a valid key |
+| 422 | validation error: ... | Invalid request payload | Correct the request body |
+| 500 | something went wrong | Server-side error | Check service logs and retry |
 
 ## Sample API
 

@@ -2,6 +2,12 @@
 
 Get up and running with the goserve framework in minutes.
 
+## Pick Your Starting Point (30s)
+- **Use the production-ready sample**: [PostgreSQL example](/postgres/) (recommended to see auth, roles, Redis, tests)
+- **Document DB flavor**: [MongoDB example](/mongo/) (JWT + API keys + Redis)
+- **Distributed system**: [gomicro](/micro/) (Kong + NATS + Postgres + Mongo + Redis)
+- **Build from scratch**: Follow the quick steps below in your own repo
+
 ## What is goserve?
 
 **goserve** is a robust Go backend architecture framework that provides a performant and scalable foundation for building REST APIs. It emphasizes feature separation, clean code, and testability with built-in JWT authentication and role-based authorization.
@@ -84,7 +90,11 @@ go mod init my-goserve-app
 go get github.com/afteracademy/goserve
 ```
 
-### 2. Server Setup
+### 2. Scaffold a Feature (fastest path)
+
+Use the PostgreSQL example’s generator pattern: create `api/feature/controller.go`, `service.go`, `dto`, `model`, and register in `startup/module.go`. See [Extend a feature](/core-concepts#extend-a-feature) for the minimal steps.
+
+### 3. Server Setup
 
 The goserve framework uses a structured startup system. Based on the PostgreSQL example, the actual server initialization involves:
 
@@ -106,6 +116,23 @@ docker compose up --build
 ```
 
 Your API will be available at `http://localhost:8080`
+
+### 4. Smoke-test the running API
+
+```bash
+export API_KEY=dev-$(openssl rand -hex 6)
+docker compose exec postgres \
+	psql -U goserve_example_user -d goserve_example_db \
+	-c "INSERT INTO api_keys (key, permissions, comments, version) VALUES ('$API_KEY', '{\"GENERAL\"}', '{\"docs\"}', 1);"
+curl -H "x-api-key: $API_KEY" http://localhost:8080/health
+```
+
+More options and guidance: [API key setup](/api-keys).
+
+### Fast checks (recommended)
+- Run tests: `go test ./...`
+- Health: `curl -H "x-api-key: $API_KEY" http://localhost:8080/health`
+- Seed reminder: ensure at least one API key exists before calling auth/blog routes.
 
 ## Framework Components
 
@@ -153,8 +180,12 @@ The best way to understand goserve is through the **[PostgreSQL Example](/postgr
 Test it:
 
 ```bash
-curl http://localhost:8080/hello
+curl -H "x-api-key: $API_KEY" http://localhost:8080/hello
 ```
+
+## Observability
+- Health endpoint: `GET /health` (port 8080 in the Postgres example)
+- Logs: use `docker compose logs -f api` or your local process output
 
 ## Next Steps
 
