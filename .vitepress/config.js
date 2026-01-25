@@ -63,7 +63,6 @@ export default defineConfig({
           items: [
             { text: "Overview", link: "/postgres/" },
             { text: "Getting Started", link: "/postgres/getting-started" },
-            { text: "Installation", link: "/postgres/installation" },
             { text: "Architecture", link: "/postgres/architecture" },
             { text: "Core Concepts", link: "/postgres/core-concepts" },
             { text: "Configuration", link: "/postgres/configuration" },
