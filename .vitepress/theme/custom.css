@@ -74,3 +74,8 @@
 .VPHero img {
   border-radius: 50%;
 }
+
+code,
+pre {
+  font-feature-settings: "liga" 0;
+}

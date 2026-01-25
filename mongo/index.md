@@ -4,14 +4,15 @@ layout: doc
 
 # goserve Example API - MongoDB
 
-[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://golang.org)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/afteracademy/goserve/blob/main/LICENSE)
-[![MongoDB](https://img.shields.io/badge/MongoDB-7+-47A248?style=flat&logo=mongodb)](https://www.mongodb.com)
-[![Redis](https://img.shields.io/badge/Redis-7+-DC382D?style=flat&logo=redis)](https://redis.io)
+[![Docker Compose CI](https://github.com/afteracademy/goserve-example-api-server-mongo/actions/workflows/docker_compose.yml/badge.svg)](https://github.com/afteracademy/goserve-example-api-server-mongo/actions/workflows/docker_compose.yml)
+
+[![Architechture](https://img.shields.io/badge/Framework-blue?label=View&logo=go)](https://github.com/afteracademy/goserve)
+
+[![Starter Project](https://img.shields.io/badge/Starter%20Project%20CLI-red?label=Get&logo=go)](https://github.com/afteracademy/goservegen)
+
+[![Download](https://img.shields.io/badge/Download-Starter%20Project%20Mongo%20Zip-green.svg)](https://github.com/afteracademy/goservegen/raw/main/starter-project-mongo.zip)
 
 **Production-Ready Go Backend Architecture with MongoDB**
-
-![Goserve banner](/images/goserve-banner.png)
 
 Build scalable REST APIs with MongoDB, Redis, JWT auth, and clean modular design.
 

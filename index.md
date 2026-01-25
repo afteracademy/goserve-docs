@@ -49,34 +49,6 @@ features:
     details: Complete example implementations to get you started quickly
 ---
 
-## 📚 Documentation
-
-### Getting Started
-- **[Getting Started](/getting-started)** - Quick start guide with examples
-- **[Installation](/installation)** - Install goserve and set up your project
-- **[PostgreSQL Example](/postgres/)** - Complete REST API implementation
-
-### Framework Guide
-- **[Architecture](/architecture)** - Framework architecture and design patterns
-- **[Core Concepts](/core-concepts)** - Controllers, services, DTOs, and patterns
-- **[Configuration](/configuration)** - Environment setup and configuration options
-
-### Choose Your Path
-- **New API with PostgreSQL** → [PostgreSQL Example](/postgres/) (JWT + API keys + Redis + tests)
-- **New API with MongoDB** → [MongoDB Example](/mongo/) (JWT + API keys + Redis)
-- **Microservices** → [gomicro](/micro/) (Kong + NATS + Postgres + Mongo + Redis)
-- **Framework internals** → [Architecture](/architecture) and [Core Concepts](/core-concepts)
-
-
-## What is goserve?
-
-**goserve** is a production-ready Go backend architecture framework that offers a performant and scalable foundation for building REST APIs. It emphasizes:
-
-- **Feature Separation**: Clean, modular architecture that scales as your application grows
-- **Clean Code**: Well-organized structure following best practices
-- **Testability**: Simplified unit and integration testing patterns
-- **Production Ready**: Built-in utilities for validation, configuration, and security
-
 ## Technology Stack
 
 goserve is built with industry-standard Go libraries:
@@ -92,6 +64,27 @@ goserve is built with industry-standard Go libraries:
 - **Crypto** - Cryptographic utilities
 
 **Latest Version:** v2.1.2
+
+## Why Choose goserve?
+
+- ✅ **Batteries Included**: Everything you need for production REST APIs
+- ✅ **Clean Architecture**: Feature-based organization that scales
+- ✅ **Easy Testing**: Simplified patterns for unit and integration tests
+- ✅ **Active Development**: Regularly updated with latest Go best practices
+- ✅ **Well Documented**: Comprehensive examples and documentation
+- ✅ **Open Source**: Apache 2.0 licensed, free to use
+
+## 📚 Documentation
+
+### Getting Started
+- **[Getting Started](/getting-started)** - Quick start guide with examples
+- **[Installation](/installation)** - Install goserve and set up your project
+- **[PostgreSQL Example](/postgres/)** - Complete REST API implementation
+
+### Framework Guide
+- **[Architecture](/architecture)** - Framework architecture and design patterns
+- **[Core Concepts](/core-concepts)** - Controllers, services, DTOs, and patterns
+- **[Configuration](/configuration)** - Environment setup and configuration options
 
 ## Example Projects
 
@@ -127,23 +120,6 @@ curl http://localhost:8080/health
 ```
 
 See the [PostgreSQL Example Documentation](/postgres/) for detailed setup and usage.
-
-### Learn More
-
-Ready to dive deeper? Check out our comprehensive documentation:
-
-- **[Framework Architecture](/architecture)** - Understand goserve's layered design
-- **[Core Concepts](/core-concepts)** - Master controllers, services, and DTOs
-- **[Configuration Guide](/configuration)** - Set up your development environment
-
-## Why Choose goserve?
-
-- ✅ **Batteries Included**: Everything you need for production REST APIs
-- ✅ **Clean Architecture**: Feature-based organization that scales
-- ✅ **Easy Testing**: Simplified patterns for unit and integration tests
-- ✅ **Active Development**: Regularly updated with latest Go best practices
-- ✅ **Well Documented**: Comprehensive examples and documentation
-- ✅ **Open Source**: Apache 2.0 licensed, free to use
 
 ## Community & Resources
 

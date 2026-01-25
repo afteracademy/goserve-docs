@@ -41,9 +41,7 @@ git clone https://github.com/afteracademy/goserve-example-api-server-mongo.git
 cd goserve-example-api-server-mongo
 go run .tools/rsa/keygen.go && go run .tools/copy/envs.go
 docker compose up --build -d
-export API_KEY=your-api-key
-# if starting fresh, insert API_KEY into your api_keys collection, then:
-curl -H "x-api-key: $API_KEY" http://localhost:8080/health
+curl -H http://localhost:8080/health
 ```
 
 More guidance: [API key setup](/api-keys).
@@ -92,7 +90,7 @@ The API will be available at: `http://localhost:8080`
 Check the health of your API:
 
 ```bash
-curl -H "x-api-key: $API_KEY" http://localhost:8080/health
+curl http://localhost:8080/health
 ```
 
 ## Your First API Request
@@ -107,23 +105,104 @@ export API_KEY=your-api-key
 
 If your database is empty, create an entry in the `api_keys` collection (or use the seeded key if provided). See [API key setup](/api-keys) for options.
 
-### 2. Create a Sample Document
+### 2. Sign Up
 
 ```bash
-curl -X POST http://localhost:8080/sample \
-  -H "x-api-key: $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "field": "Hello MongoDB!",
-    "status": true
-  }'
+curl --location 'http://localhost:8000/auth/signup/basic' \
+--header 'x-api-key: 1D3F2DD1A5DE725DD4DF1D82BBB37' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "email": "ali@afteracademy.com",
+    "password": "123456",
+    "name": "Janishar Ali"
+}'
 ```
 
-### 3. Get All Samples
+Response:
+
+```json
+{
+    "code": "10000",
+    "status": 200,
+    "message": "success",
+    "data": {
+        "user": {
+            "_id": "66784450751bd4db00490891",
+            "email": "ali@afteracademy.com",
+            "name": "Janishar Ali",
+            "roles": [
+                {
+                    "_id": "66784418b8c142336899ea79",
+                    "code": "LEARNER"
+                }
+            ]
+        },
+        "tokens": {
+            "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhcGkuZ29zZXJ2ZS51bnVzdWFsY29kZS5vcmciLCJzdWIiOiI2Njc4NDQ1MDc1MWJkNGRiMDA0OTA4OTEiLCJhdWQiOlsiZ29zZXJ2ZS51bnVzdWFsY29kZS5vcmciXSwiZXhwIjoxNzE5MzMwNjQwLCJuYmYiOjE3MTkxNTc4NDAsImlhdCI6MTcxOTE1Nzg0MCwianRpIjoiODdjYTI3NTU1YjdiM2FmZjJmYjAzM2JiNTliYjc4MDUzZmM4OWRjNWNjNGQ3ODUzYzIzNTBiMjU0MDI2Yjk5ZiJ9.FSwh3PPNlJ3KtNx86mSCbnxJFrDPeD3G4Y3cOBNa_vu4LP_RuDdZNstsLa5Hi822oFycK2EmXmhbLvBR50oO6K-8_HcdilXn_B_isPei49OlhmBWb8fQx1umI-2uNjb5zSolZzzUXZsgF0QeGuQ0NlyAMOJlk1LBcrgZpcTOOpc9gOodBbulqWIEOOgrvSDispnWMBzSJY0xeNBNHKOVPodQOslAslS_8213w8i0l6e_Wn1r0cGywYl5Hgg9GfXJWijZcynpznyO8XUQiRI97WrAEyQ6se8vV-LaEl6aTp_gJfVhad3Fxf54a8MrLOfGoAZDbH2x5POo_z39I5qgHg",
+            "refreshToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhcGkuZ29zZXJ2ZS51bnVzdWFsY29kZS5vcmciLCJzdWIiOiI2Njc4NDQ1MDc1MWJkNGRiMDA0OTA4OTEiLCJhdWQiOlsiZ29zZXJ2ZS51bnVzdWFsY29kZS5vcmciXSwiZXhwIjoxNzE5NzYyNjQwLCJuYmYiOjE3MTkxNTc4NDAsImlhdCI6MTcxOTE1Nzg0MCwianRpIjoiMDdiY2JiYmI2MDFmYThiMjY2NTMwZTg0MmRhYzIzMWVhNDBhZWNlZWZiNDE2YzU4MmE3YjRlODhlYWU5YTY3NSJ9.jyNzy8wf4CYTjI9SXU3ISZj-BRK35FN_aj9q3CslZ98VhdCKrdbrFO-XXLd0ZoTdKX8nyYg16aqvgu70VA8zF8fCiW9hw5-jxR1-nQOTtoZ4Ej3O2GcauLK1zSLBPH57v5VclRdSkE8VZznfM-OI5ZQ4vo8cqku_ZHRxIP6LfW7nn07BSB8CeJcIJHXYzUaFiTcw4LXW_JqGf_vpe76iEgbUKZetBtiKdAc_iP7B-CrfSAwkOafyxt8EoHzw5ip00RJSs4-PVGMs_sJJN7xkeYDWkaEDZNb7Wkf7_Jk9h-0WwihRrlsirIo4L7m3kN1GlLcH7Bvt2jeadgAAIZZwpA"
+        }
+    }
+}
+```
+
+### 2. Sign In
 
 ```bash
-curl http://localhost:8080/samples \
-  -H "x-api-key: $API_KEY"
+curl --location 'http://localhost:8000/auth/signin/basic' \
+--header 'x-api-key: 1D3F2DD1A5DE725DD4DF1D82BBB37' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "email": "ali@afteracademy.com",
+    "password": "123456"
+}'
+```
+### You must provide Roles to this user in the database to access protected routes.
+You can use the default admin user seeded in the database:
+```bash
+curl --location 'http://localhost:8000/auth/signin/basic' \
+--header 'x-api-key: 1D3F2DD1A5DE725DD4DF1D82BBB37' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "email": "admin@afteracademy.com",
+    "password": "changeit"
+}'
+```
+Resonpse
+```json
+{
+    "code": "10000",
+    "status": 200,
+    "message": "success",
+    "data": {
+        "user": {
+            "_id": "697600e406eab070d0d29518",
+            "email": "admin@afteracademy.com",
+            "name": "Admin",
+            "roles": [
+                {
+                    "_id": "697600e406eab070d0d29514",
+                    "code": "LEARNER"
+                },
+                {
+                    "_id": "697600e406eab070d0d29515",
+                    "code": "AUTHOR"
+                },
+                {
+                    "_id": "697600e406eab070d0d29516",
+                    "code": "EDITOR"
+                },
+                {
+                    "_id": "697600e406eab070d0d29517",
+                    "code": "ADMIN"
+                }
+            ]
+        },
+        "tokens": {
+            "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhcGkuZ29zZXJ2ZS5hZnRlcmFjYWRlbXkuY29tIiwic3ViIjoiNjk3NjAwZTQwNmVhYjA3MGQwZDI5NTE4IiwiYXVkIjpbImdvc2VydmUuYWZ0ZXJhY2FkZW15LmNvbSJdLCJleHAiOjE3Njk1MTM5ODcsIm5iZiI6MTc2OTM0MTE4NywiaWF0IjoxNzY5MzQxMTg3LCJqdGkiOiIwNDZhMzY1M2Y3OGUyMzgzYjA0OGZkMTRhZDcyNzdkM2NiN2RjYmQzNjVkMjMxYjkxMGE3ZGU1NDdkOTQzOTU2In0.En172q_qCEW2G9PuKH-yDHBMEs5UxSZXph9ZDluA0W3wT0MSVy0QZPzOM2grzbGEPNuAXnBQBNCoGO7em1tR8pT1hJnEo9irdcgsjXboIORapa004ME942kB_k2R5R3I1SGm0rVHu2_WWemY0qgnpp7FhG0SXbG9GWnk1IrGgywgTCgbAp9u9x2Q7IkrINUdZgtuoKIbIlN22Z3vk3mSYqk5n1JSEGPH-qWKuDqXB6lsyW5Up2-qaEiLQD4BN7kpoPOfkGCDZHqdppzyQeuYwBG4005-AE20mrOiDkP9ezGBZAZj2mU49Dh4jxUPfSVkkNvLxokxHj6umDYADSOsJg",
+            "refreshToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhcGkuZ29zZXJ2ZS5hZnRlcmFjYWRlbXkuY29tIiwic3ViIjoiNjk3NjAwZTQwNmVhYjA3MGQwZDI5NTE4IiwiYXVkIjpbImdvc2VydmUuYWZ0ZXJhY2FkZW15LmNvbSJdLCJleHAiOjE3Njk5NDU5ODcsIm5iZiI6MTc2OTM0MTE4NywiaWF0IjoxNzY5MzQxMTg3LCJqdGkiOiJjYjljZGU3OTkzOGEwMTQ4NjExYzc3ZjcwMmMxYmQ1OTEzMjM1MzgwNzdjZmVhZWVmZjQ5MmRkMTI0YmZmZjlkIn0.QROG1v6N7u5yrrI2fJmIQRd_EV3aiadKmgRt4XfeEloPrqL-e7AOBVT9p1rgnC07GRKehSfE6Fau7fMuidG0ugNxOWtWqK-gNwAlZyRnLeiM-D5Nvqucdy9SbNkHHcC87dQU2hv31fnxztZEbSUAB3tT276EfyYnp5CmHUS6W0AqhyipW7DORhq6HemD5QxOq71rWVOnD67hHfFD1aTCLJyhpm0vXBgaM67jK3LYbBjdeRQCImDtHoXNKlUjq3DDRilT-tIR97T83CNIHJ3tQc2ZBqmKLw-So_tLERKRMN_pE2v6NIFfAJmxqSUjA2K_g5va0TyFsUXeHfs4Mdxpqw"
+        }
+    }
+}
 ```
 
 ## Architecture Overview
@@ -142,20 +221,20 @@ This example demonstrates goserve's architecture with MongoDB:
 
 ```
 goserve-example-api-server-mongo/
-├── api/                    # API feature modules
+├── api/                   # API feature modules
 │   └── sample/            # Sample feature
 │       ├── dto/           # Data Transfer Objects
 │       ├── model/         # MongoDB document models
 │       ├── controller.go  # HTTP handlers
 │       └── service.go     # Business logic
 ├── cmd/                   # Application entry point
-│   └── main.go           # Main function
+│   └── main.go            # Main function
 ├── common/                # Shared utilities
 ├── config/                # Configuration
 ├── startup/               # Server initialization
-│   ├── server.go         # Server setup
-│   ├── module.go         # Dependency injection
-│   └── indexes.go        # Database indexes
+│   ├── server.go          # Server setup
+│   ├── module.go          # Dependency injection
+│   └── indexes.go         # Database indexes
 ├── tests/                 # Integration tests
 ├── .tools/                # Code generation tools
 └── keys/                  # RSA keys for JWT
@@ -164,18 +243,18 @@ goserve-example-api-server-mongo/
 ## Development Workflow
 
 ### Fast checks (recommended)
-- Tests: `docker exec -t goserver-mongo go test -v ./...` (or `go test -v ./...` locally)
-- Health: `curl -H "x-api-key: $API_KEY" http://localhost:8080/health`
+- Tests: `docker exec -t goserver-mongo go test -v ./...`
+- Health: `curl http://localhost:8080/health`
 - Seed reminder: ensure at least one API key exists before hitting protected routes.
 
 ### Running Tests
 
 ```bash
 # Run all tests
-docker exec -t goserve_example_api_server_mongo go test -v ./...
+docker exec -t goserver-mongo go test -v ./...
 
 # Run specific test
-docker exec -t goserve_example_api_server_mongo go test -v ./tests/
+docker exec -t goserver-mongo go test -v ./tests/
 ```
 
 ### Code Generation

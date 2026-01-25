@@ -7,6 +7,7 @@ Understanding the goserve MongoDB example API architecture and design patterns.
 The goserve MongoDB example demonstrates a complete **production-ready REST API** built with the goserve framework using MongoDB as the primary database. It follows a **feature-based modular architecture** where each API endpoint is organized into self-contained modules with clear separation of concerns, JWT authentication, and comprehensive testing.
 
 ### Why this stack
+
 - Document-first: flexible schemas with DTO validation and cache-aside Redis support.
 - Same security posture: API key edge + JWT + roles mirroring the Postgres example.
 - Lean starter: minimal surface area to prototype quickly while keeping tests and Docker.
@@ -22,7 +23,7 @@ The goserve MongoDB example demonstrates a complete **production-ready REST API*
 
 ```
 goserve-example-api-server-mongo/
-├── api/                    # API feature modules
+├── api/                   # API feature modules
 │   └── sample/            # Sample feature
 │       ├── dto/           # Data Transfer Objects
 │       │   └── info_sample.go
@@ -31,21 +32,21 @@ goserve-example-api-server-mongo/
 │       ├── controller.go  # HTTP handlers
 │       └── service.go     # Business logic
 ├── cmd/                   # Application entry point
-│   └── main.go           # Main function
+│   └── main.go            # Main function
 ├── common/                # Shared utilities
 │   └── context_payload.go # Request context helpers
 ├── config/                # Configuration
-│   └── env.go            # Environment variables
+│   └── env.go             # Environment variables
 ├── startup/               # Server initialization
-│   ├── server.go         # Server setup
-│   ├── module.go         # Dependency injection
-│   └── indexes.go        # Database indexes
+│   ├── server.go          # Server setup
+│   ├── module.go          # Dependency injection
+│   └── indexes.go         # Database indexes
 ├── tests/                 # Integration tests
 ├── utils/                 # Utility functions
 ├── .tools/                # Code generation tools
-│   ├── apigen.go         # API generator
-│   ├── rsa/              # RSA key generator
-│   └── copy/             # Env file copier
+│   ├── apigen.go          # API generator
+│   ├── rsa/               # RSA key generator
+│   └── copy/              # Env file copier
 ├── keys/                  # RSA keys for JWT
 └── .extra/                # MongoDB scripts and docs
 ```
@@ -111,7 +112,7 @@ The API follows a layered request-response pattern with proper error handling an
 
 ### Request Flow
 
-```
+````
 HTTP Request (e.g., GET /sample/id/123)
   ↓
 Root Middleware (Global - applied to all routes)
@@ -172,7 +173,7 @@ func (c *controller) MountRoutes(group *gin.RouterGroup) {
         protected.DELETE("/id/:id", c.deleteSampleHandler)
     }
 }
-```
+````
 
 ### 2. Services
 
@@ -181,6 +182,7 @@ func (c *controller) MountRoutes(group *gin.RouterGroup) {
 **Purpose**: Implement business logic with MongoDB operations and caching
 
 **Responsibilities**:
+
 - Business rule enforcement and validation
 - MongoDB CRUD operations with queries
 - Redis caching (cache-aside pattern)
@@ -253,6 +255,7 @@ func (s *service) CreateSample(dto *dto.CreateSample) (*model.Sample, error) {
 **Purpose**: Define MongoDB document schemas
 
 **Responsibilities**:
+
 - Represent MongoDB collections and documents
 - Define document structure with BSON tags
 - Implement validation and indexing
@@ -318,6 +321,7 @@ func (*Sample) EnsureIndexes(db mongo.Database) {
 **Purpose**: Define request/response schemas for API contracts
 
 **Responsibilities**:
+
 - Input validation with JSON binding tags
 - Output formatting for API responses
 - Type safety for request/response data
@@ -351,55 +355,47 @@ type InfoSample struct {
 ### Connection Management
 
 ```go
-// Database configuration
-type MongoConfig struct {
-    URI      string
-    Database string
-    Options  *options.ClientOptions
+dbConfig := mongo.DbConfig{
+	User:        env.DBUser,
+	Pwd:         env.DBUserPwd,
+	Host:        env.DBHost,
+	Port:        env.DBPort,
+	Name:        env.DBName,
+	MinPoolSize: env.DBMinPoolSize,
+	MaxPoolSize: env.DBMaxPoolSize,
+	Timeout:     time.Duration(env.DBQueryTimeout) * time.Second,
 }
 
-// Connection setup
-client, err := mongo.NewClient(options.Client().ApplyURI(config.URI))
-if err != nil {
-    return err
-}
-
-ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-defer cancel()
-
-err = client.Connect(ctx)
-if err != nil {
-    return err
-}
-
-db := client.Database(config.Database)
+db := mongo.NewDatabase(context, dbConfig)
+db.Connect()
 ```
 
 ### Query Patterns
 
 ```go
 // Single document queries
+messageQueryBuilder := mongo.NewQueryBuilder[model.Message](db, model.CollectionName),
 filter := bson.M{"_id": id}
-sample, err := queryBuilder.SingleQuery().FindOne(filter, nil)
+msg, err := messageQueryBuilder.SingleQuery().FindOne(filter, nil)
+if err != nil {
+	return nil, err
+}
 
 // Multiple document queries
 filter := bson.M{"status": true}
-samples, err := queryBuilder.Query().Find(filter, &options.FindOptions{
-    Sort: bson.M{"createdAt": -1},
-    Limit: &limit,
-})
-
-// Aggregation pipelines
-pipeline := mongo.Pipeline{
-    {{"$match", bson.M{"status": true}}},
-    {{"$sort", bson.M{"createdAt": -1}}},
-    {{"$limit", limit}},
+msgs, err := messageQueryBuilder.SingleQuery().FindPaginated(filter, 1, 10, nil)
+if err != nil {
+	return nil, err
 }
-results, err := queryBuilder.Aggregation().Aggregate(pipeline, nil)
 
-// Insert operations
-result, err := queryBuilder.SingleQuery().InsertOne(document)
-
+func (s *service) CreateUser(user *model.User) (*model.User, error) {
+	id, err := s.userQueryBuilder.SingleQuery().InsertOne(user)
+	if err != nil {
+		return nil, err
+	}
+	user.ID = *id
+	return user, nil
+}
 // Update operations
 filter := bson.M{"_id": id}
 update := bson.M{"$set": bson.M{"field": newValue}}
@@ -542,6 +538,7 @@ go run .tools/apigen.go sample
 ```
 
 This generates:
+
 - `api/sample/dto/` - Request/response DTOs
 - `api/sample/model/sample.go` - MongoDB document model
 - `api/sample/controller.go` - HTTP handlers

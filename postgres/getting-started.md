@@ -44,7 +44,7 @@ docker compose up --build -d
 # create an API key for local use (replace the value if you prefer)
 export API_KEY=dev-$(openssl rand -hex 6)
 docker compose exec postgres \
-  psql -U goserve_example_user -d goserve_example_db \
+  psql -U goserver_dev_db_user -d goserver_dev_db \
   -c "INSERT INTO api_keys (key, permissions, comments, version) VALUES ('$API_KEY', '{\"GENERAL\"}', '{\"local dev\"}', 1);"
 curl -H "x-api-key: $API_KEY" http://localhost:8080/health
 ```
@@ -53,7 +53,7 @@ Need more options? See [API key setup](/api-keys).
 
 ### Fast checks (recommended)
 - Tests: `docker exec -t goserver-postgres go test -v ./...` (or `go test -v ./...` locally)
-- Health: `curl -H "x-api-key: $API_KEY" http://localhost:8080/health`
+- Health: `curl -H http://localhost:8080/health`
 - Seed reminder: ensure at least one API key exists before calling auth/blog routes.
 
 If you prefer step-by-step, read on.
@@ -114,11 +114,11 @@ export API_KEY=dev-$(openssl rand -hex 6)
 
 # If using Docker Compose (default credentials from .env.example)
 docker compose exec postgres \
-  psql -U goserve_example_user -d goserve_example_db \
+  psql -U goserver_dev_db_user -d goserver_dev_db \
   -c "INSERT INTO api_keys (key, permissions, comments, version) VALUES ('$API_KEY', '{\"GENERAL\"}', '{\"docs\"}', 1);"
 
 # If connecting directly with psql
-# psql -h localhost -p 5432 -U goserve_example_user -d goserve_example_db \
+# psql -h localhost -p 5432 -U goserver_dev_db_user -d goserver_dev_db \
 #   -c "INSERT INTO api_keys (key, permissions, comments, version) VALUES ('$API_KEY', '{\"GENERAL\"}', '{\"docs\"}', 1);"
 ```
 

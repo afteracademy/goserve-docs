@@ -4,13 +4,6 @@ layout: doc
 
 # gomicro - Go Microservices Architecture
 
-[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://golang.org)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/afteracademy/gomicro/blob/main/LICENSE)
-[![Kong](https://img.shields.io/badge/Kong-3.0+-003459?style=flat&logo=kong)](https://konghq.com)
-[![NATS](https://img.shields.io/badge/NATS-2.9+-27AAE1?style=flat&logo=nats.io)](https://nats.io)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-316192?style=flat&logo=postgresql)](https://www.postgresql.org)
-[![MongoDB](https://img.shields.io/badge/MongoDB-7+-47A248?style=flat&logo=mongodb)](https://www.mongodb.com)
-
 **Complete Microservices Implementation with Kong API Gateway**
 
 ![Gomicro banner](/images/gomicro-banner.png)

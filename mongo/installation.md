@@ -43,30 +43,41 @@ go run .tools/copy/envs.go
 Edit `.env` file with your settings:
 
 ```bash
-# Database Configuration
-DB_HOST=localhost
-DB_PORT=27017
-DB_NAME=goserve_mongo
-DB_USER=
-DB_PASSWORD=
+# debug, release, test
+GO_MODE=debug
 
-# Redis Configuration
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=
-REDIS_DB=0
-
-# JWT Configuration
-JWT_SECRET_KEY_PATH=keys/private.pem
-JWT_PUBLIC_KEY_PATH=keys/public.pem
-
-# Server Configuration
 SERVER_HOST=0.0.0.0
 SERVER_PORT=8080
-GO_ENV=development
 
-# API Configuration
-API_BASE_URL=http://localhost:8080
+# DB_HOST=localhost
+DB_HOST=mongo
+DB_PORT=27017
+DB_NAME=goserver-dev-db
+DB_USER=goserver-dev-db-user
+DB_USER_PWD=changeit
+DB_MIN_POOL_SIZE=2
+DB_MAX_POOL_SIZE=5
+DB_QUERY_TIMEOUT_SEC=60
+
+# MongoDB Admin Credentials
+MONGO_INITDB_ROOT_USERNAME=admin
+MONGO_INITDB_ROOT_PASSWORD=changeit
+MONGO_INITDB_DATABASE=admin
+
+# REDIS_HOST=localhost
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_PASSWORD=changeit
+
+# 2 DAYS: 172800 Sec
+ACCESS_TOKEN_VALIDITY_SEC=172800
+# 7 DAYS: 604800 Sec
+REFRESH_TOKEN_VALIDITY_SEC=604800
+TOKEN_ISSUER=api.goserve.afteracademy.com
+TOKEN_AUDIENCE=goserve.afteracademy.com
+
+RSA_PRIVATE_KEY_PATH="keys/private.pem"
+RSA_PUBLIC_KEY_PATH="keys/public.pem"
 ```
 
 ## Running with Docker

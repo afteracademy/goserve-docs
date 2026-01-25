@@ -8,8 +8,8 @@ Get up and running with the goserve framework in minutes.
 
 ## Choose Your Path
 
-- **Production-ready example**: [PostgreSQL example](/postgres/) - Complete with auth, roles, Redis, and tests
-- **Document database**: [MongoDB example](/mongo/) - JWT + API keys + Redis
+- **Production-ready example**: [PostgreSQL example](/postgres/)
+- **Document database**: [MongoDB example](/mongo/)
 - **Distributed system**: [gomicro](/micro/) - Kong + NATS + Postgres + Mongo + Redis
 - **Build from scratch**: Follow the installation steps below
 
@@ -21,12 +21,6 @@ Before you begin, ensure you have the following installed:
 
 - **Go 1.21+** - [Download](https://golang.org/dl/)
 - **Git** - [Download](https://git-scm.com/downloads)
-
-### Optional (depending on your use case)
-
-- **PostgreSQL 14+** - [Download](https://www.postgresql.org/download/) (for PostgreSQL support)
-- **MongoDB 5+** - [Download](https://www.mongodb.com/try/download/community) (for MongoDB support)
-- **Redis 6+** - [Download](https://redis.io/download) (for caching and sessions)
 - **Docker** - [Download](https://www.docker.com/get-started) (for containerized development)
 
 ### Verify Installation
@@ -103,7 +97,7 @@ Your API will be available at `http://localhost:8080`
 ```bash
 export API_KEY=dev-$(openssl rand -hex 6)
 docker compose exec postgres \
-	psql -U goserve_example_user -d goserve_example_db \
+	psql -U goserver_dev_db_user -d goserver_dev_db \
 	-c "INSERT INTO api_keys (key, permissions, comments, version) VALUES ('$API_KEY', '{\"GENERAL\"}', '{\"docs\"}', 1);"
 curl -H "x-api-key: $API_KEY" http://localhost:8080/health
 ```

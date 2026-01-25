@@ -84,11 +84,11 @@ Ensure port 5432 is not occupied. Change this value if another PostgreSQL instan
 
 ### DB_USER
 - **Type:** `string`
-- **Default:** `goserve_example_user`
+- **Default:** `goserver_dev_db`
 - **Description:** PostgreSQL database username.
 
 ```bash
-DB_USER=goserve_example_user
+DB_USER=goserver_dev_db_user
 ```
 
 ### DB_USER_PWD
@@ -247,35 +247,41 @@ Here's a complete `.env` file example:
 
 ```bash
 # Server Configuration
+# debug, release, test
 GO_MODE=debug
+
 SERVER_HOST=0.0.0.0
 SERVER_PORT=8080
 
-# Database Configuration
+# DB_HOST=localhost
 DB_HOST=postgres
-DB_NAME=goserve_example_db
 DB_PORT=5432
-DB_USER=goserve_example_user
+DB_NAME=goserver_dev_db
+DB_USER=goserver_dev_db_user
 DB_USER_PWD=changeit
 DB_MIN_POOL_SIZE=2
-DB_MAX_POOL_SIZE=10
-DB_QUERY_TIMEOUT_SEC=10
+DB_MAX_POOL_SIZE=5
+DB_QUERY_TIMEOUT_SEC=60
 
-# Redis Configuration
+# PostgreSQL Docker container variables
+POSTGRES_DB=goserver_dev_db
+POSTGRES_USER=goserver_dev_db_user
+POSTGRES_PASSWORD=changeit
+
+# REDIS_HOST=localhost
 REDIS_HOST=redis
 REDIS_PORT=6379
 REDIS_PASSWORD=changeit
-REDIS_DB=0
 
-# RSA Keys
-RSA_PRIVATE_KEY_PATH=keys/private.pem
-RSA_PUBLIC_KEY_PATH=keys/public.pem
+# 2 DAYS: 172800 Sec
+ACCESS_TOKEN_VALIDITY_SEC=172800
+# 7 DAYS: 604800 Sec
+REFRESH_TOKEN_VALIDITY_SEC=604800
+TOKEN_ISSUER=api.goserve.afteracademy.com
+TOKEN_AUDIENCE=goserve.afteracademy.com
 
-# Token Configuration
-ACCESS_TOKEN_VALIDITY_SEC=10800
-REFRESH_TOKEN_VALIDITY_SEC=2592000
-TOKEN_ISSUER=https://api.afteracademy.com
-TOKEN_AUDIENCE=https://afteracademy.com
+RSA_PRIVATE_KEY_PATH="keys/private.pem"
+RSA_PUBLIC_KEY_PATH="keys/public.pem"
 ```
 
 ## Loading Configuration
