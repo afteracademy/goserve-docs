@@ -574,79 +574,90 @@ const newBlog = await api.createBlog({
 });
 ```
 
-### Python
+### Go Client
 
-```python
-import requests
+```go
+package main
 
-class GomicroAPI:
-    def __init__(self, base_url="http://localhost:8000", api_key="your-api-key"):
-        self.base_url = base_url
-        self.api_key = api_key
-        self.session = requests.Session()
-        self.session.headers.update({
-            'x-api-key': self.api_key,
-            'Content-Type': 'application/json'
-        })
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "net/http"
+)
 
-    def signup(self, user_data):
-        response = self.session.post(f"{self.base_url}/auth/signup/basic", json=user_data)
-        return response.json()
+type GomicroAPI struct {
+    BaseURL     string
+    APIKey      string
+    AccessToken string
+    Client      *http.Client
+}
 
-    def signin(self, credentials):
-        response = self.session.post(f"{self.base_url}/auth/signin/basic", json=credentials)
-        data = response.json()
-        if data['success']:
-            token = data['data']['access_token']
-            self.session.headers['Authorization'] = f'Bearer {token}'
-        return data
+func NewGomicroAPI(baseURL, apiKey string) *GomicroAPI {
+    return &GomicroAPI{
+        BaseURL: baseURL,
+        APIKey:  apiKey,
+        Client:  &http.Client{},
+    }
+}
 
-    def get_blogs(self, page=1, limit=10):
-        params = {'page': page, 'limit': limit}
-        response = self.session.get(f"{self.base_url}/blog", params=params)
-        return response.json()
+func (api *GomicroAPI) Signup(userData map[string]interface{}) (map[string]interface{}, error) {
+    body, _ := json.Marshal(userData)
+    req, _ := http.NewRequest("POST", api.BaseURL+"/auth/signup/basic", bytes.NewBuffer(body))
+    req.Header.Set("x-api-key", api.APIKey)
+    req.Header.Set("Content-Type", "application/json")
 
-    def create_blog(self, blog_data):
-        response = self.session.post(f"{self.base_url}/blog/author", json=blog_data)
-        return response.json()
+    resp, err := api.Client.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
 
-    def update_blog(self, blog_id, blog_data):
-        response = self.session.put(f"{self.base_url}/blog/author/id/{blog_id}", json=blog_data)
-        return response.json()
+    var result map[string]interface{}
+    json.NewDecoder(resp.Body).Decode(&result)
+    return result, nil
+}
 
-    def publish_blog(self, blog_id):
-        response = self.session.put(f"{self.base_url}/blog/editor/id/{blog_id}/publish")
-        return response.json()
+func (api *GomicroAPI) Signin(credentials map[string]string) (map[string]interface{}, error) {
+    body, _ := json.Marshal(credentials)
+    req, _ := http.NewRequest("POST", api.BaseURL+"/auth/signin/basic", bytes.NewBuffer(body))
+    req.Header.Set("x-api-key", api.APIKey)
+    req.Header.Set("Content-Type", "application/json")
 
-    def delete_blog(self, blog_id):
-        response = self.session.delete(f"{self.base_url}/blog/author/id/{blog_id}")
-        return response.json()
+    resp, err := api.Client.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
 
-# Usage
-api = GomicroAPI()
+    var result map[string]interface{}
+    json.NewDecoder(resp.Body).Decode(&result)
+    
+    // Extract access token
+    if data, ok := result["data"].(map[string]interface{}); ok {
+        if token, ok := data["access_token"].(string); ok {
+            api.AccessToken = token
+        }
+    }
+    return result, nil
+}
 
-# Sign up
-api.signup({
-    "name": "John Doe",
-    "email": "john@example.com",
-    "password": "password123"
-})
+func (api *GomicroAPI) GetBlogs(page, limit int) (map[string]interface{}, error) {
+    url := fmt.Sprintf("%s/blog?page=%d&limit=%d", api.BaseURL, page, limit)
+    req, _ := http.NewRequest("GET", url, nil)
+    req.Header.Set("x-api-key", api.APIKey)
+    req.Header.Set("Authorization", "Bearer "+api.AccessToken)
 
-# Sign in
-auth_data = api.signin({
-    "email": "john@example.com",
-    "password": "password123"
-})
+    resp, err := api.Client.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
 
-# Use API
-blogs = api.get_blogs(page=1, limit=10)
-new_blog = api.create_blog({
-    "title": "My Blog",
-    "description": "Blog description",
-    "draftText": "Blog content...",
-    "slug": "my-blog",
-    "tags": ["tech"]
-})
+    var result map[string]interface{}
+    json.NewDecoder(resp.Body).Decode(&result)
+    return result, nil
+}
 ```
 
 ## Next Steps

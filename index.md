@@ -70,7 +70,7 @@ features:
 
 ## What is goserve?
 
-**goserve** is a robust Go backend architecture framework that offers a performant and scalable foundation for building REST APIs. It emphasizes:
+**goserve** is a production-ready Go backend architecture framework that offers a performant and scalable foundation for building REST APIs. It emphasizes:
 
 - **Feature Separation**: Clean, modular architecture that scales as your application grows
 - **Clean Code**: Well-organized structure following best practices
@@ -81,21 +81,28 @@ features:
 
 goserve is built with industry-standard Go libraries:
 
-- **Go** - Modern, efficient programming language
+- **Go 1.21+** - Modern, efficient programming language
 - **Gin** - Fast HTTP web framework
-- **JWT** - Secure token-based authentication
+- **JWT (RS256)** - Secure RSA-signed token-based authentication  
 - **pgx** - PostgreSQL driver with connection pooling
+- **MongoDB Driver** - Official Go driver for MongoDB
 - **go-redis** - Redis client for caching and sessions
 - **Validator** - Request validation utilities
+- **Viper** - Configuration management
 - **Crypto** - Cryptographic utilities
 
 ## Example Projects
 
 Learn by example with complete, production-ready implementations:
 
-1. **[goserve-example-api-server-postgres](/postgres/)** - Complete REST API with PostgreSQL, Redis, and JWT authentication
-2. **[goserve-example-api-server-mongo](/mongo/)** - Complete REST API with MongoDB, Redis, and JWT authentication
-3. **[gomicro](/micro/)** - Microservices architecture with Kong API gateway, NATS messaging, and Docker orchestration
+### 1. [PostgreSQL Example](/postgres/)
+Complete REST API with PostgreSQL, Redis, JWT authentication, role-based authorization, and comprehensive testing.
+
+### 2. [MongoDB Example](/mongo/)
+Complete REST API with MongoDB, Redis, and JWT authentication.
+
+### 3. [Microservices (gomicro)](/micro/)
+Microservices architecture with Kong API gateway, NATS messaging, and Docker orchestration.
 
 ## Quick Start
 

@@ -2,15 +2,16 @@
 
 Get up and running with the goserve framework in minutes.
 
-## Pick Your Starting Point
-- **Use the production-ready sample**: [PostgreSQL example](/postgres/) (recommended to see auth, roles, Redis, tests)
-- **Document DB flavor**: [MongoDB example](/mongo/) (JWT + API keys + Redis)
-- **Distributed system**: [gomicro](/micro/) (Kong + NATS + Postgres + Mongo + Redis)
-- **Build from scratch**: Follow the quick steps below in your own repo
-
 ## What is goserve?
 
 **goserve** is a robust Go backend architecture framework that provides a performant and scalable foundation for building REST APIs. It emphasizes feature separation, clean code, and testability with built-in JWT authentication and role-based authorization.
+
+## Choose Your Path
+
+- **Production-ready example**: [PostgreSQL example](/postgres/) - Complete with auth, roles, Redis, and tests
+- **Document database**: [MongoDB example](/mongo/) - JWT + API keys + Redis
+- **Distributed system**: [gomicro](/micro/) - Kong + NATS + Postgres + Mongo + Redis
+- **Build from scratch**: Follow the installation steps below
 
 ## Prerequisites
 
@@ -24,7 +25,9 @@ Before you begin, ensure you have the following installed:
 ### Optional (depending on your use case)
 
 - **PostgreSQL 14+** - [Download](https://www.postgresql.org/download/) (for PostgreSQL support)
+- **MongoDB 5+** - [Download](https://www.mongodb.com/try/download/community) (for MongoDB support)
 - **Redis 6+** - [Download](https://redis.io/download) (for caching and sessions)
+- **Docker** - [Download](https://www.docker.com/get-started) (for containerized development)
 
 ### Verify Installation
 
@@ -55,28 +58,6 @@ Then run:
 
 ```bash
 go mod tidy
-```
-
-### Alternative: Use the PostgreSQL Example as Starting Point
-
-For a complete, production-ready starting point:
-
-```bash
-# Clone the PostgreSQL example
-git clone https://github.com/afteracademy/goserve-example-api-server-postgres.git my-api
-cd my-api
-
-# Install dependencies
-go mod download
-
-# Copy environment file
-cp .tools/copy/env/.env.example .env
-
-# Edit environment variables
-nano .env
-
-# Run the application
-go run cmd/main.go
 ```
 
 ## Quick Start
@@ -138,15 +119,16 @@ More options and guidance: [API key setup](/api-keys).
 
 goserve provides several key components organized in a layered architecture:
 
-### Network Layer (Controllers & Routing)
-- **Base Controllers** - HTTP request handlers with built-in auth
-- **Middleware System** - JWT authentication, role authorization, CORS
+### Network Layer
+- **Controllers** - HTTP request handlers with built-in auth
+- **Middleware** - JWT authentication, role authorization, CORS
 - **Route Groups** - Feature-based route organization
 - **Error Handling** - Structured error responses
 
 ### Database Layer
 - **PostgreSQL** - Advanced pgx driver with connection pooling
-- **Redis** - Caching with type-safe generics
+- **MongoDB** - Native Go driver support
+- **Redis** - Caching with type-safe operations
 
 ### Business Logic Layer
 - **Services** - Business logic with caching and transactions
@@ -155,37 +137,39 @@ goserve provides several key components organized in a layered architecture:
 - **Validation** - Struct-based input validation
 
 ### Security & Authentication
-- **JWT Authentication** - RSA-signed tokens
+- **JWT Authentication** - RSA-signed tokens (access + refresh)
 - **Role-Based Authorization** - Hierarchical permissions
+- **API Keys** - Edge authentication
 - **Password Hashing** - Secure password storage
 
 ## Example Projects
 
-The best way to learn goserve is through example projects:
+Learn by exploring complete, production-ready implementations:
 
-1. **[PostgreSQL Example](/postgres/)** - Complete REST API with PostgreSQL, Redis, JWT authentication, role-based authorization, and comprehensive testing
+### 1. [PostgreSQL Example](/postgres/)
+Complete REST API with:
+- PostgreSQL database with pgx driver
+- Redis caching
+- JWT authentication (RSA)
+- Role-based authorization
+- Comprehensive test suite
+- Docker setup
 
-## Learn by Example
+### 2. [MongoDB Example](/mongo/)
+REST API with MongoDB:
+- MongoDB native driver
+- Redis caching
+- JWT authentication
+- API key management
+- Docker setup
 
-The best way to understand goserve is through the **[PostgreSQL Example](/postgres/)**, which demonstrates:
-- Complete server setup with environment configuration
-- JWT authentication and role-based authorization
-- PostgreSQL integration with connection pooling
-- Redis caching with type-safe generics
-- Structured error handling and validation
-- Unit and integration testing patterns
-
-**Start with the PostgreSQL example** to see goserve in action!
-
-Test it:
-
-```bash
-curl -H "x-api-key: $API_KEY" http://localhost:8080/hello
-```
-
-## Observability
-- Health endpoint: `GET /health` (port 8080 in the Postgres example)
-- Logs: use `docker compose logs -f api` or your local process output
+### 3. [Microservices (gomicro)](/micro/)
+Distributed architecture with:
+- Kong API gateway
+- NATS messaging
+- Multiple services (auth, blog)
+- PostgreSQL + MongoDB + Redis
+- Load balancing support
 
 ## Next Steps
 

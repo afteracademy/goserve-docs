@@ -449,36 +449,55 @@ const getSamples = async () => {
 };
 ```
 
-### Python
+### Go Client
 
-```python
-import requests
+```go
+package main
 
-class APIClient:
-    def __init__(self, base_url="http://localhost:8080", api_key="your-api-key"):
-        self.base_url = base_url
-        self.api_key = api_key
-        self.session = requests.Session()
-        self.session.headers.update({
-            'x-api-key': self.api_key,
-            'Content-Type': 'application/json'
-        })
+import (
+    "bytes"
+    "encoding/json"
+    "net/http"
+)
 
-    def create_sample(self, field, status, token=None):
-        headers = {}
-        if token:
-            headers['Authorization'] = f'Bearer {token}'
+type APIClient struct {
+    BaseURL string
+    APIKey  string
+    Client  *http.Client
+}
 
-        response = self.session.post(
-            f"{self.base_url}/sample",
-            json={"field": field, "status": status},
-            headers=headers
-        )
-        return response.json()
+func NewAPIClient(baseURL, apiKey string) *APIClient {
+    return &APIClient{
+        BaseURL: baseURL,
+        APIKey:  apiKey,
+        Client:  &http.Client{},
+    }
+}
 
-    def get_samples(self):
-        response = self.session.get(f"{self.base_url}/sample")
-        return response.json()
+func (c *APIClient) CreateSample(field string, status bool, token string) (map[string]interface{}, error) {
+    data := map[string]interface{}{
+        "field":  field,
+        "status": status,
+    }
+    body, _ := json.Marshal(data)
+
+    req, _ := http.NewRequest("POST", c.BaseURL+"/sample", bytes.NewBuffer(body))
+    req.Header.Set("x-api-key", c.APIKey)
+    req.Header.Set("Content-Type", "application/json")
+    if token != "" {
+        req.Header.Set("Authorization", "Bearer "+token)
+    }
+
+    resp, err := c.Client.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
+
+    var result map[string]interface{}
+    json.NewDecoder(resp.Body).Decode(&result)
+    return result, nil
+}
 ```
 
 ## Next Steps
