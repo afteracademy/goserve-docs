@@ -7,7 +7,7 @@ export default defineConfig({
     "A robust Go backend architecture framework emphasizing feature separation, clean code, and testability",
 
   themeConfig: {
-    logo: "https://static.afteracademy.com/images/logo.webp",
+    logo: "/images/logo.webp",
 
     nav: [
       { text: "Home", link: "/" },
@@ -28,7 +28,6 @@ export default defineConfig({
         {
           text: "Introduction",
           items: [
-            { text: "Overview", link: "/" },
             { text: "Getting Started", link: "/getting-started" },
             { text: "Installation", link: "/installation" },
           ],
@@ -99,7 +98,7 @@ export default defineConfig({
 
     socialLinks: [
       {
-        icon: "https://static.afteracademy.com/images/logo.webp",
+        icon: "/images/logo.webp",
         link: "https://afteracademy.com",
         ariaLabel: "AfterAcademy Website",
       },

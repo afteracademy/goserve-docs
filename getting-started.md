@@ -2,7 +2,7 @@
 
 Get up and running with the goserve framework in minutes.
 
-## Pick Your Starting Point (30s)
+## Pick Your Starting Point
 - **Use the production-ready sample**: [PostgreSQL example](/postgres/) (recommended to see auth, roles, Redis, tests)
 - **Document DB flavor**: [MongoDB example](/mongo/) (JWT + API keys + Redis)
 - **Distributed system**: [gomicro](/micro/) (Kong + NATS + Postgres + Mongo + Redis)

@@ -6,8 +6,8 @@ hero:
   text: "Go API Backend Framework"
   tagline: A robust framework for building efficient, reliable and scalable server-side applications
   image:
-    src: /images/goserve-banner.png
-    alt: goserve banner
+    src: /images/mascot.svg
+    alt: goserve mascot
   actions:
     - theme: brand
       text: PostgreSQL Example
@@ -52,8 +52,8 @@ features:
 ## 📚 Documentation
 
 ### Getting Started
-- **[Installation](/installation)** - Install goserve and set up your project
 - **[Getting Started](/getting-started)** - Quick start guide with examples
+- **[Installation](/installation)** - Install goserve and set up your project
 - **[PostgreSQL Example](/postgres/)** - Complete REST API implementation
 
 ### Framework Guide
@@ -61,7 +61,7 @@ features:
 - **[Core Concepts](/core-concepts)** - Controllers, services, DTOs, and patterns
 - **[Configuration](/configuration)** - Environment setup and configuration options
 
-### Choose Your Path (30s)
+### Choose Your Path
 - **New API with PostgreSQL** → [PostgreSQL Example](/postgres/) (JWT + API keys + Redis + tests)
 - **New API with MongoDB** → [MongoDB Example](/mongo/) (JWT + API keys + Redis)
 - **Microservices** → [gomicro](/micro/) (Kong + NATS + Postgres + Mongo + Redis)
