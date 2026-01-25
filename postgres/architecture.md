@@ -1,14 +1,14 @@
 # Project Architecture
 
-Understanding the goserve MongoDB example API architecture and design patterns.
+Understanding the goserve PostgreSQL example API architecture and design patterns.
 
 ## Overview
 
-The goserve MongoDB example demonstrates a complete **production-ready REST API** built with the goserve framework using MongoDB as the primary database. It follows a **feature-based modular architecture** where each API endpoint is organized into self-contained modules with clear separation of concerns, JWT authentication, and comprehensive testing.
+The goserve PostgreSQL example demonstrates a complete **production-ready REST API** built with the goserve framework using PostgreSQL as the primary database. It follows a **feature-based modular architecture** where each API endpoint is organized into self-contained modules with clear separation of concerns, JWT authentication, and comprehensive testing.
 
 ### Why this stack
 
-- Document-first: flexible schemas with DTO validation and cache-aside Redis support.
+- table-first: flexible schemas with DTO validation and cache-aside Redis support.
 - Same security posture: API key edge + JWT + roles mirroring the Postgres example.
 - Lean starter: minimal surface area to prototype quickly while keeping tests and Docker.
 
@@ -27,7 +27,7 @@ The goserve MongoDB example demonstrates a complete **production-ready REST API*
 ## Directory Structure
 
 ```
-goserve-example-api-server-mongo/
+goserve-example-api-server-postgres/
 ├── Dockerfile                # Production-ready container build
 ├── docker-compose.yml        # Local development stack
 ├── go.mod                    # Go module definition
@@ -112,7 +112,7 @@ goserve-example-api-server-mongo/
 ├── startup/                  # Application initialization
 │   ├── server.go             # HTTP server setup
 │   ├── module.go             # Dependency wiring (DI)
-│   ├── indexes.go            # MongoDB index creation
+│   ├── indexes.go            # PostgreSQL index creation
 │   └── testserver.go         # Test server bootstrap
 │
 ├── config/                   # Configuration management
@@ -139,8 +139,8 @@ goserve-example-api-server-mongo/
 │   ├── rsa/                  # RSA key generator
 │   └── copy/                 # Env file copier
 │
-└── .extra/                   # Database scripts & documentation
-    └── setup/                # MongoDB initialization scripts
+└── .extra/                   # Database scripts & tableation
+    └── setup/                # PostgreSQL initialization scripts
 ```
 
 ## Application Flow
@@ -158,7 +158,7 @@ create() - Component initialization
   │   ├── JWT RSA keys
   │   ├── Redis configuration
   │   └── Server settings
-  ├── Connect MongoDB (mongo.Database)
+  ├── Connect PostgreSQL (postgres.Database)
   │   ├── Create connection pool
   │   ├── Configure timeouts
   │   └── Health checks
@@ -172,7 +172,7 @@ create() - Component initialization
   │   ├── Create Controllers
   │   └── Setup Middleware
   ├── Ensure Database Indexes (startup.indexes)
-  │   ├── Create MongoDB indexes
+  │   ├── Create PostgreSQL indexes
   │   └── Optimize query performance
   ↓
 router.Start() - Start Gin HTTP server
@@ -259,12 +259,12 @@ Here `authProvider network.AuthenticationProvider`, `authorizeProvider network.A
 
 **Location**: `api/[feature]/service.go`
 
-**Purpose**: Implement business logic with MongoDB operations and caching
+**Purpose**: Implement business logic with PostgreSQL operations and caching
 
 **Responsibilities**:
 
 - Business rule enforcement and validation
-- MongoDB CRUD operations with queries
+- PostgreSQL CRUD operations with queries
 - Redis caching (cache-aside pattern)
 - Data transformation between models and DTOs
 - Error handling and business logic
@@ -273,30 +273,51 @@ Here `authProvider network.AuthenticationProvider`, `authorizeProvider network.A
 
 ```go
 type Service interface {
-	FindSample(id primitive.ObjectID) (*model.Sample, error)
+	FindSample(id uuid.UUID) (*model.Sample, error)
 }
 
 type service struct {
-	sampleQueryBuilder mongo.QueryBuilder[model.Sample]
-	infoSampleCache    redis.Cache[dto.InfoSample]
+	db              postgres.Database
+	infoSampleCache     redis.Cache[dto.InfoSample]
 }
 
-func NewService(db mongo.Database, store redis.Store) Service {
+func NewService(db postgres.Database, store redis.Store) Service {
 	return &service{
-		sampleQueryBuilder: mongo.NewQueryBuilder[model.Sample](db, model.CollectionName),
-		infoSampleCache: redis.NewCache[dto.InfoSample](store),
+	  db:              db,
+		infoSampleCache:     redis.NewCache[dto.InfoSample](store),
 	}
 }
 
-func (s *service) FindSample(id primitive.ObjectID) (*model.Sample, error) {
-	filter := bson.M{"_id": id}
+func (s *service) FindSample(id uuid.UUID) (*model.Sample, error) {
+  ctx := context.Background()
+	
+	query := `
+		SELECT
+			id,
+			field,
+			status,
+			created_at,
+			updated_at
+		FROM samples
+		WHERE id = $1
+	`
 
-	msg, err := s.sampleQueryBuilder.SingleQuery().FindOne(filter, nil)
+	var m model.Sample
+
+	err := s.db.Pool().QueryRow(ctx, query, id).
+		Scan(
+			&m.ID,
+			&m.Field,
+			&m.Status,
+			&m.CreatedAt,
+			&m.UpdatedAt,
+		)
+
 	if err != nil {
 		return nil, err
 	}
 
-	return msg, nil
+	return &m, nil
 }
 ```
 
@@ -304,58 +325,26 @@ func (s *service) FindSample(id primitive.ObjectID) (*model.Sample, error) {
 
 **Location**: `api/[feature]/model/[entity].go`
 
-**Purpose**: Define MongoDB document schemas
+**Purpose**: Define PostgreSQL table schemas
 
 **Responsibilities**:
 
-- Represent MongoDB collections and documents
-- Define document structure with BSON tags
+- Represent PostgreSQL tables
+- Define table structure with SQL tags
 - Implement validation and indexing
-- Provide factory methods for creating documents
+- Provide factory methods for creating new records
 
-**MongoDB Model Pattern**:
+**PostgreSQL Model Pattern**:
 
 ```go
-const CollectionName = "samples"
+const SampleTableName = "samples"
 
 type Sample struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty" validate:"-"`
-	Field     string             `bson:"field" validate:"required"`
-	Status    bool               `bson:"status" validate:"required"`
-	CreatedAt time.Time          `bson:"createdAt" validate:"required"`
-	UpdatedAt time.Time          `bson:"updatedAt" validate:"required"`
-}
-
-func NewSample(field string) (*Sample, error) {
-	time := time.Now()
-	doc := Sample{
-		Field:     field,
-		Status:    true,
-		CreatedAt: time,
-		UpdatedAt: time,
-	}
-	if err := doc.Validate(); err != nil {
-		return nil, err
-	}
-	return &doc, nil
-}
-
-func (doc *Sample) Validate() error {
-	validate := validator.New()
-	return validate.Struct(doc)
-}
-
-func (*Sample) EnsureIndexes(db mongo.Database) {
-	indexes := []mongod.IndexModel{
-		{
-			Keys: bson.D{
-				{Key: "_id", Value: 1},
-				{Key: "status", Value: 1},
-			},
-		},
-	}
-	
-	mongo.NewQueryBuilder[Sample](db, CollectionName).Query(context.Background()).CreateIndexes(indexes)
+	ID        uuid.UUID  // id 
+	Field     string     // field
+	Status    bool       // status
+	CreatedAt time.Time  // created_at
+	UpdatedAt time.Time  // updated_at
 }
 ```
 
@@ -370,7 +359,7 @@ func (*Sample) EnsureIndexes(db mongo.Database) {
 - Input validation with JSON binding tags
 - Output formatting for API responses
 - Type safety for request/response data
-- API contract documentation
+- API contract tableation
 
 **DTO Patterns**:
 
@@ -382,7 +371,7 @@ type InfoSample struct {
 }
 ```
 
-## MongoDB Integration
+## PostgreSQL Integration
 
 ### Connection Management
 
@@ -390,7 +379,7 @@ type InfoSample struct {
 // startup/server.go create function
 context := context.Background()
 
-dbConfig := mongo.DbConfig{
+dbConfig := postgres.DbConfig{
 	User:        env.DBUser,
 	Pwd:         env.DBUserPwd,
 	Host:        env.DBHost,
@@ -401,55 +390,37 @@ dbConfig := mongo.DbConfig{
 	Timeout:     time.Duration(env.DBQueryTimeout) * time.Second,
 }
 
-db := mongo.NewDatabase(context, dbConfig)
+db := postgres.NewDatabase(context, dbConfig)
 db.Connect()
 ```
 
 ### Query Patterns
+goserve used pgx library for PostgreSQL operations. You can find the basic query patterns from the library documentation: [github.com/jackc/pgx](https://github.com/jackc/pgx)
 
 ```go
-// Single document queries
-messageQueryBuilder := mongo.NewQueryBuilder[model.Message](db, model.CollectionName),
-filter := bson.M{"_id": id}
-msg, err := messageQueryBuilder.SingleQuery().FindOne(filter, nil)
-if err != nil {
-	return nil, err
-}
+ctx := context.Background()
+	
+query := `
+	SELECT
+		id,
+		field,
+		status,
+		created_at,
+		updated_at
+	FROM samples
+	WHERE id = $1
+`
 
-// Multiple document queries
-filter := bson.M{"status": true}
-msgs, err := messageQueryBuilder.SingleQuery().FindPaginated(filter, 1, 10, nil)
-if err != nil {
-	return nil, err
-}
+var m model.Sample
 
-// Insert operations
-blogQueryBuilder := mongo.NewQueryBuilder[model.Blog](db, model.CollectionName)
-blog, err := model.NewBlog(b.Slug, b.Title, b.Description, b.DraftText, b.Tags, author)
-if err != nil {
-	return nil, err
-}
-
-created, err := blogQueryBuilder.SingleQuery().InsertAndRetrieveOne(blog)
-if err != nil {
-	return nil, err
-}
-
-// Update operations
-filter := bson.M{"_id": blogId, "author": author.ID, "status": true}
-update := bson.M{"$set": bson.M{"status": false, "updatedBy": author.ID, "updatedAt": time.Now()}}
-result, err := blogQueryBuilder.SingleQuery().UpdateOne(filter, update)
-if err != nil {
-	return err
-}
-
-if result.MatchedCount == 0 {
-	return network.NewNotFoundError("blog not found", nil)
-}
-
-// Delete operations
-filter := bson.M{"_id": id}
-result, err := blogQueryBuilder.SingleQuery().DeleteOne(filter)
+err := s.db.Pool().QueryRow(ctx, query, id).
+	Scan(
+		&m.ID,
+		&m.Field,
+		&m.Status,
+		&m.CreatedAt,
+		&m.UpdatedAt,
+	)
 ```
 
 ## Caching Strategy
@@ -463,7 +434,7 @@ type service struct {
 	//...
 }
 
-func NewService(db mongo.Database, store redis.Store, userService user.Service) Service {
+func NewService(db postgres.Database, store redis.Store, userService user.Service) Service {
 	return &service{
 		publicBlogCache:  redis.NewCache[dto.PublicBlog](store),
 		// ...
@@ -487,26 +458,47 @@ func (s *service) GetBlogDtoCacheById(id primitive.ObjectID) (*dto.PublicBlog, e
 
 ```go
 // Service layer errors
-func (s *service) FindSample(id primitive.ObjectID) (*model.Sample, error) {
-	filter := bson.M{"_id": id}
+func (s *service) FindSample(id uuid.UUID) (*model.Sample, error) {
+  ctx := context.Background()
+	
+	query := `
+		SELECT
+			id,
+			field,
+			status,
+			created_at,
+			updated_at
+		FROM samples
+		WHERE id = $1
+	`
 
-	sample, err := s.sampleQueryBuilder.SingleQuery().FindOne(filter, nil)
+	var m model.Sample
+
+	err := s.db.Pool().QueryRow(ctx, query, id).
+		Scan(
+			&m.ID,
+			&m.Field,
+			&m.Status,
+			&m.CreatedAt,
+			&m.UpdatedAt,
+		)
+
 	if err != nil {
 		return nil, err
 	}
 
-	return sample, nil
+	return &m, nil
 }
 
 // Controller error handling
 func (c *controller) getSampleHandler(ctx *gin.Context) {
-	mongoId, err := network.ReqParams[coredto.MongoId](ctx)
+	uuidParam, err := network.ReqParams[coredto.UUID](ctx)
 	if err != nil {
 		network.SendBadRequestError(ctx, err.Error(), err)
 		return
 	}
 
-	sample, err := c.service.FindSample(mongoId.ID)
+	sample, err := c.service.FindSample(uuidParam.ID)
 	if err != nil {
 		network.SendNotFoundError(ctx, "sample not found", err)
 		return
@@ -551,11 +543,39 @@ func TestAuthenticationProvider_NoAccessToken(t *testing.T) {
 ```go
 func TestIntegrationAuthController_SignupSuccess(t *testing.T) {
 	router, module, shutdown := startup.TestServer()
+	var role *roleModel.Role
+	var apikey *model.ApiKey
 	defer shutdown()
 
-	apikey, err := module.GetInstance().AuthService.CreateApiKey("test_key", 1, []model.Permission{"test"}, []string{"comment"})
+	t.Cleanup(func() {
+		if apikey != nil {
+			module.GetInstance().AuthService.DeleteApiKey(apikey)
+		}
+	})
+
+	t.Cleanup(func() {
+		if role != nil {
+			module.GetInstance().UserService.DeleteRole(role)
+		}
+	})
+
+	t.Cleanup(func() {
+		module.GetInstance().UserService.RemoveUserByEmail("test@abc.com")
+	})
+
+	key, err := utility.GenerateRandomString(6)
+	if err != nil {
+		t.Fatalf("could not create key: %v", err)
+	}
+
+	apikey, err = module.GetInstance().AuthService.CreateApiKey(key, 1, []model.Permission{"test"}, []string{"comment"})
 	if err != nil {
 		t.Fatalf("could not create apikey: %v", err)
+	}
+
+	role, err = module.GetInstance().UserService.CreateRole(roleModel.RoleCodeLearner)
+	if err != nil {
+		t.Fatalf("could not create role: %v", err)
 	}
 
 	body := `{"email":"test@abc.com","password":"123456","name":"test name"}`
@@ -565,7 +585,7 @@ func TestIntegrationAuthController_SignupSuccess(t *testing.T) {
 		t.Fatalf("could not create request: %v", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set(network.ApiKeyHeader, apikey.Key)
+	req.Header.Add(network.ApiKeyHeader, apikey.Key)
 
 	rr := httptest.NewRecorder()
 	router.GetEngine().ServeHTTP(rr, req)
@@ -576,16 +596,6 @@ func TestIntegrationAuthController_SignupSuccess(t *testing.T) {
 	assert.Contains(t, rr.Body.String(), `"user"`)
 	assert.Contains(t, rr.Body.String(), `"roles"`)
 	assert.Contains(t, rr.Body.String(), `"tokens"`)
-
-	_, err = module.GetInstance().AuthService.DeleteApiKey(apikey)
-	if err != nil {
-		t.Fatalf("could not delete apikey: %v", err)
-	}
-
-	_, err = module.GetInstance().UserService.DeleteUserByEmail("test@abc.com")
-	if err != nil {
-		t.Fatalf("could not delete user: %v", err)
-	}
 }
 ```
 
@@ -600,6 +610,6 @@ go run .tools/apigen.go sample
 This generates:
 
 - `api/sample/dto/` - Request/response DTOs
-- `api/sample/model/sample.go` - MongoDB document model
+- `api/sample/model/sample.go` - PostgreSQL table model
 - `api/sample/controller.go` - HTTP handlers
 - `api/sample/service.go` - Business logic

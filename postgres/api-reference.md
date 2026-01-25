@@ -1,13 +1,13 @@
 # API Reference
 
-Complete API endpoint reference for the goserve MongoDB blog platform. All endpoints require an API key in the `x-api-key` header except `/health`.
+Complete API endpoint reference for the goserve PostgresSQL blog platform. All endpoints require an API key in the `x-api-key` header except `/health`.
 
-[![API Documentation](https://img.shields.io/badge/API%20Documentation-View%20Here-blue?style=for-the-badge)](https://documenter.getpostman.com/view/1552895/2sA3XWdefu)
+[![API Documentation](https://img.shields.io/badge/API%20Documentation-View%20Here-blue?style=for-the-badge)](https://documenter.getpostman.com/view/1552895/2sBXVihVLg)
 
 ### API Key
-API Key `1D3F2DD1A5DE725DD4DF1D82BBB37` is created as default by this project through mongo init scripts.
+API Key `1D3F2DD1A5DE725DD4DF1D82BBB37` is created as default by this project through postgres pgseed SQL script.
 
-If your database is empty, create an entry in the `api_keys` collection.
+If your database is empty, create an entry in the `api_keys` table.
 
 See [API key setup](/api-keys) for more details.
 
@@ -103,27 +103,17 @@ GET /blogs/latest?page=1&limit=10
   "message": "success",
   "data": [
     {
-      "_id": "667846dffa51e5414d99f748",
-      "title": "Test Title 2",
-      "description": "Test Description 2",
-      "slug": "test-url-2",
-      "score": 0.01,
-      "tags": [
-        "GO",
-        "CLI"
-      ]
-    },
-    {
-      "_id": "66784670fa51e5414d99f747",
+      "id": "494f4b9c-c1d6-473c-8fe4-5aabc1cc5f77",
       "title": "Test Title",
       "description": "Test Description",
-      "slug": "test-url",
-      "imgUrl": "https://janisharali.com/assets/ali-cover.png",
+      "slug": "test-url-3",
+      "imgUrl": "https://example/assets/image.png",
       "score": 0.01,
       "tags": [
         "GO",
         "BACKEND"
-      ]
+      ],
+      "publishedAt": "2026-01-20T03:52:32.311231Z"
     }
   ]
 }
@@ -131,14 +121,14 @@ GET /blogs/latest?page=1&limit=10
 
 ### Get Blog by ID
 
-Get a specific blog by its MongoDB ObjectID.
+Get a specific blog by its PostgresSQL UUID.
 
 ```http
 GET /blog/id/{id}
 ```
 
 **Parameters:**
-- `id` (string, required) - MongoDB ObjectID of the sample
+- `id` (string, required) - PostgresSQL UUID of the sample
 
 **Response:**
 ```json
@@ -147,29 +137,29 @@ GET /blog/id/{id}
   "status": 200,
   "message": "success",
   "data": {
-    "_id": "66784670fa51e5414d99f747",
+    "id": "494f4b9c-c1d6-473c-8fe4-5aabc1cc5f77",
     "title": "Test Title",
     "description": "Test Description",
     "text": "<p>draft</p>",
-    "slug": "test-url",
+    "slug": "test-url-3",
     "author": {
-      "_id": "6678463efa51e5414d99f745",
-      "name": "Janishar Ali"
+      "id": "149dfb45-9079-443d-b4dd-b146ce879446",
+      "name": "Admin"
     },
-    "imgUrl": "https://janisharali.com/assets/ali-cover.png",
+    "imgUrl": "https://example/assets/image.png",
     "score": 0.01,
     "tags": [
       "GO",
       "BACKEND"
     ],
-    "publishedAt": "2024-06-23T16:03:26.851Z"
+    "publishedAt": "2026-01-20T03:52:32.311231Z"
   }
 }
 ```
 
 ### Create Blog
 
-Create a new blog document.
+Create a new blog record.
 
 ```http
 POST /blog/author
@@ -203,15 +193,16 @@ x-api-key: your-api-key
   "status": 200,
   "message": "blog created successfully",
   "data": {
-    "_id": "66784670fa51e5414d99f747",
+    "id": "91ad379c-dcfb-4f97-9d57-2c8d3d925dd1",
     "title": "Test Title",
     "description": "Test Description",
     "draftText": "<p>draft</p>",
     "slug": "test-url",
     "author": {
-      "_id": "6678463efa51e5414d99f745",
-      "name": "Janishar Ali"
+      "id": "149dfb45-9079-443d-b4dd-b146ce879446",
+      "name": "Admin"
     },
+    "imgUrl": "https://example/assets/image.png",
     "score": 0.01,
     "tags": [
       "GO",
@@ -220,22 +211,22 @@ x-api-key: your-api-key
     "submitted": false,
     "drafted": true,
     "published": false,
-    "createdAt": "2024-06-23T15:59:44.942Z",
-    "updatedAt": "2024-06-23T15:59:44.942Z"
+    "createdAt": "0001-01-01T00:00:00Z",
+    "updatedAt": "0001-01-01T00:00:00Z"
   }
 }
 ```
 
 ### Update Blog
 
-Update an existing blog document.
+Update an existing blog record.
 
 ```http
 PUT /blog/author/id/{id}
 ```
 
 **Parameters:**
-- `id` (string, required) - MongoDB ObjectID of the blog
+- `id` (string, required) - PostgresSQL UUID of the blog
 **Headers:**
 ```
 Authorization: Bearer <jwt_token>
@@ -263,18 +254,18 @@ x-api-key: your-api-key
 {
   "code": "10000",
   "status": 200,
-  "message": "blog updated successfully",
+  "message": "blog created successfully",
   "data": {
-    "_id": "66784670fa51e5414d99f747",
+    "id": "91ad379c-dcfb-4f97-9d57-2c8d3d925dd1",
     "title": "Test Title",
     "description": "Test Description",
     "draftText": "<p>draft</p>",
-    "slug": "test-url-2",
+    "slug": "test-url",
     "author": {
-      "_id": "6678463efa51e5414d99f745",
-      "name": "Janishar Ali"
+      "id": "149dfb45-9079-443d-b4dd-b146ce879446",
+      "name": "Admin"
     },
-    "imgUrl": "https://janisharali.com/assets/ali-cover.png",
+    "imgUrl": "https://example/assets/image.png",
     "score": 0.01,
     "tags": [
       "GO",
@@ -283,22 +274,22 @@ x-api-key: your-api-key
     "submitted": false,
     "drafted": true,
     "published": false,
-    "createdAt": "2024-06-23T15:59:44.942Z",
-    "updatedAt": "2024-06-23T16:00:57.677Z"
+    "createdAt": "0001-01-01T00:00:00Z",
+    "updatedAt": "0001-01-01T00:00:00Z"
   }
 }
 ```
 
 ### Delete Blog
 
-Delete a blog document.
+Delete a blog record.
 
 ```http
 DELETE /blog/author/id/{id}
 ```
 
 **Parameters:**
-- `id` (string, required) - MongoDB ObjectID of the blog
+- `id` (string, required) - PostgresSQL UUID of the blog
 **Headers:**
 ```
 Authorization: Bearer <jwt_token>
@@ -343,12 +334,12 @@ POST /auth/signup/basic
   "message": "success",
   "data": {
     "user": {
-      "_id": "66784450751bd4db00490891",
+      "id": "df7b4663-c595-4f0b-ba9d-6ac3d3dfe244",
       "email": "ali@afteracademy.com",
       "name": "Janishar Ali",
       "roles": [
         {
-          "_id": "66784418b8c142336899ea79",
+          "id": "17c8077b-d5c2-42d8-a42b-9a0469c54209",
           "code": "LEARNER"
         }
       ]
@@ -385,12 +376,12 @@ POST /auth/signin/basic
   "message": "success",
   "data": {
     "user": {
-      "_id": "66784450751bd4db00490891",
+      "id": "df7b4663-c595-4f0b-ba9d-6ac3d3dfe244",
       "email": "ali@afteracademy.com",
       "name": "Janishar Ali",
       "roles": [
         {
-          "_id": "66784418b8c142336899ea79",
+          "id": "17c8077b-d5c2-42d8-a42b-9a0469c54209",
           "code": "LEARNER"
         }
       ]
@@ -456,24 +447,24 @@ x-api-key: your-api-key
   "status": 200,
   "message": "success",
   "data": {
-    "_id": "66784633949a981aad99ea7d",
+    "_id": "df7b4663-c595-4f0b-ba9d-6ac3d3dfe244",
     "email": "admin@unusualcode.org",
     "name": "Admin",
     "roles": [
       {
-        "_id": "66784633949a981aad99ea79",
+        "_id": "df7b4663-c595-4f0b-ba9d-6ac3d3dfe244",
         "code": "LEARNER"
       },
       {
-        "_id": "66784633949a981aad99ea7a",
+        "_id": "df7b4663-c595-4f0b-ba9d-6ac3d3dfe244",
         "code": "WRITER"
       },
       {
-        "_id": "66784633949a981aad99ea7b",
+        "_id": "df7b4663-c595-4f0b-ba9d-6ac3d3dfe244",
         "code": "EDITOR"
       },
       {
-        "_id": "66784633949a981aad99ea7c",
+        "_id": "df7b4663-c595-4f0b-ba9d-6ac3d3dfe244",
         "code": "ADMIN"
       }
     ]
@@ -529,11 +520,11 @@ All API errors follow a consistent format:
 
 ## Data Types
 
-### MongoDB ObjectID
+### PostgresSQL UUID
 
-All document IDs are MongoDB ObjectIDs, represented as 24-character hexadecimal strings.
+All record IDs are PostgresSQL UUIDs, represented as 36-character hexadecimal strings with hyphens.
 
-**Example:** `507f1f77bcf86cd799439011`
+**Example:** `507f1f77-bc86-4cd7-9943-9011abcd1234`
 
 ### Timestamps
 
