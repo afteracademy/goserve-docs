@@ -1,252 +1,68 @@
 # Configuration
 
-This project uses environment variables for configuration. All settings are loaded from `.env` files using [Viper](https://github.com/spf13/viper).
+Configure the goserve PostgreSQL example project.
 
-## Environment Files
+## Environment Variables
 
-- **`.env`** - Production/Development environment
-- **`.test.env`** - Testing environment
-
-::: tip Quick Setup
-Run `go run .tools/copy/envs.go` to create `.env` and `.test.env` from their example templates.
-:::
-
-## Server Configuration
-
-### GO_MODE
-- **Type:** `string`
-- **Default:** `debug`
-- **Values:** `debug`, `release`
-- **Description:** Sets the Gin framework mode. Use `release` for production to improve performance.
-
-```bash
-GO_MODE=debug
-```
-
-### SERVER_HOST
-- **Type:** `string`
-- **Default:** `0.0.0.0`
-- **Description:** The host address the server binds to. Use `0.0.0.0` to accept connections from any network interface.
-
-```bash
-SERVER_HOST=0.0.0.0
-```
-
-### SERVER_PORT
-- **Type:** `uint16`
-- **Default:** `8080`
-- **Description:** The port number the server listens on.
-
-```bash
-SERVER_PORT=8080
-```
-
-::: warning Port Conflicts
-Ensure port 8080 is not occupied by another service. If needed, change this value in your `.env` file.
-:::
+The application uses environment variables for configuration. All settings are loaded from `.env` files using Viper.
 
 ## Database Configuration
 
-### DB_HOST
-- **Type:** `string`
-- **Default:** `postgres` (Docker), `localhost` (local)
-- **Description:** PostgreSQL server hostname.
+### PostgreSQL Settings
 
-```bash
-# For Docker
+```
+# DB_HOST=localhost
 DB_HOST=postgres
-
-# For Local Development
-DB_HOST=localhost
-```
-
-### DB_NAME
-- **Type:** `string`
-- **Default:** `goserve_example_db`
-- **Description:** Name of the PostgreSQL database.
-
-```bash
-DB_NAME=goserve_example_db
-```
-
-### DB_PORT
-- **Type:** `uint16`
-- **Default:** `5432`
-- **Description:** PostgreSQL server port.
-
-```bash
 DB_PORT=5432
-```
-
-::: warning Port Conflicts
-Ensure port 5432 is not occupied. Change this value if another PostgreSQL instance is running.
-:::
-
-### DB_USER
-- **Type:** `string`
-- **Default:** `goserver_dev_db`
-- **Description:** PostgreSQL database username.
-
-```bash
+DB_NAME=goserver_dev_db
 DB_USER=goserver_dev_db_user
-```
-
-### DB_USER_PWD
-- **Type:** `string`
-- **Default:** `changeit`
-- **Description:** PostgreSQL database password.
-
-```bash
 DB_USER_PWD=changeit
-```
-
-::: danger Security Warning
-Always use a strong password in production and never commit credentials to version control.
-:::
-
-### DB_MIN_POOL_SIZE
-- **Type:** `uint16`
-- **Default:** `2`
-- **Description:** Minimum number of connections in the database pool.
-
-```bash
 DB_MIN_POOL_SIZE=2
-```
+DB_MAX_POOL_SIZE=5
+DB_QUERY_TIMEOUT_SEC=60
 
-### DB_MAX_POOL_SIZE
-- **Type:** `uint16`
-- **Default:** `10`
-- **Description:** Maximum number of connections in the database pool.
-
-```bash
-DB_MAX_POOL_SIZE=10
-```
-
-### DB_QUERY_TIMEOUT_SEC
-- **Type:** `uint16`
-- **Default:** `10`
-- **Description:** Query execution timeout in seconds.
-
-```bash
-DB_QUERY_TIMEOUT_SEC=10
+# PostgreSQL Docker container variables
+POSTGRES_DB=goserver_dev_db
+POSTGRES_USER=goserver_dev_db_user
+POSTGRES_PASSWORD=changeit
 ```
 
 ## Redis Configuration
 
-### REDIS_HOST
-- **Type:** `string`
-- **Default:** `redis` (Docker), `localhost` (local)
-- **Description:** Redis server hostname.
-
-```bash
-# For Docker
+```
+# REDIS_HOST=localhost
 REDIS_HOST=redis
-
-# For Local Development
-REDIS_HOST=localhost
-```
-
-### REDIS_PORT
-- **Type:** `uint16`
-- **Default:** `6379`
-- **Description:** Redis server port.
-
-```bash
 REDIS_PORT=6379
-```
-
-::: warning Port Conflicts
-Ensure port 6379 is not occupied. Change this value if another Redis instance is running.
-:::
-
-### REDIS_PASSWORD
-- **Type:** `string`
-- **Default:** `changeit`
-- **Description:** Redis server password (if authentication is enabled).
-
-```bash
 REDIS_PASSWORD=changeit
 ```
 
-### REDIS_DB
-- **Type:** `int`
-- **Default:** `0`
-- **Description:** Redis database number (0-15).
+## JWT Configuration
 
-```bash
-REDIS_DB=0
+```
+# 2 DAYS: 172800 Sec
+ACCESS_TOKEN_VALIDITY_SEC=172800
+# 7 DAYS: 604800 Sec
+REFRESH_TOKEN_VALIDITY_SEC=604800
+TOKEN_ISSUER=api.goserve.afteracademy.com
+TOKEN_AUDIENCE=goserve.afteracademy.com
+
+RSA_PRIVATE_KEY_PATH="keys/private.pem"
+RSA_PUBLIC_KEY_PATH="keys/public.pem"
 ```
 
-## RSA Keys Configuration
-
-RSA keys are used for JWT token signing and verification.
-
-### RSA_PRIVATE_KEY_PATH
-- **Type:** `string`
-- **Default:** `keys/private.pem`
-- **Description:** Path to the RSA private key file used for signing JWT tokens.
+## Server Configuration
 
 ```bash
-RSA_PRIVATE_KEY_PATH=keys/private.pem
+# debug, release, test
+GO_MODE=debug
+
+SERVER_HOST=0.0.0.0
+SERVER_PORT=8080
 ```
 
-### RSA_PUBLIC_KEY_PATH
-- **Type:** `string`
-- **Default:** `keys/public.pem`
-- **Description:** Path to the RSA public key file used for verifying JWT tokens.
+## .env File
 
-```bash
-RSA_PUBLIC_KEY_PATH=keys/public.pem
 ```
-
-::: tip Generate RSA Keys
-Run `go run .tools/rsa/keygen.go` or `make setup` to generate RSA key pairs.
-:::
-
-## Token Configuration
-
-### ACCESS_TOKEN_VALIDITY_SEC
-- **Type:** `uint64`
-- **Default:** `10800` (3 hours)
-- **Description:** Access token validity duration in seconds.
-
-```bash
-ACCESS_TOKEN_VALIDITY_SEC=10800
-```
-
-### REFRESH_TOKEN_VALIDITY_SEC
-- **Type:** `uint64`
-- **Default:** `2592000` (30 days)
-- **Description:** Refresh token validity duration in seconds.
-
-```bash
-REFRESH_TOKEN_VALIDITY_SEC=2592000
-```
-
-### TOKEN_ISSUER
-- **Type:** `string`
-- **Default:** `https://api.afteracademy.com`
-- **Description:** JWT token issuer claim (iss).
-
-```bash
-TOKEN_ISSUER=https://api.afteracademy.com
-```
-
-### TOKEN_AUDIENCE
-- **Type:** `string`
-- **Default:** `https://afteracademy.com`
-- **Description:** JWT token audience claim (aud).
-
-```bash
-TOKEN_AUDIENCE=https://afteracademy.com
-```
-
-## Complete Example
-
-Here's a complete `.env` file example:
-
-```bash
-# Server Configuration
 # debug, release, test
 GO_MODE=debug
 
@@ -284,15 +100,52 @@ RSA_PRIVATE_KEY_PATH="keys/private.pem"
 RSA_PUBLIC_KEY_PATH="keys/public.pem"
 ```
 
-## Loading Configuration
+## .test.env File
 
-Configuration is loaded in `config/env.go`:
+```
+# debug, release, test
+GO_MODE=debug
+
+SERVER_HOST=0.0.0.0
+SERVER_PORT=8081
+
+# DB_HOST=localhost
+DB_HOST=postgres
+DB_PORT=5432
+DB_NAME=goserver_test_db
+DB_USER=goserver_test_db_user
+DB_USER_PWD=changeit
+DB_MIN_POOL_SIZE=2
+DB_MAX_POOL_SIZE=5
+DB_QUERY_TIMEOUT_SEC=60
+
+# REDIS_HOST=localhost
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_PASSWORD=changeit
+
+# 2 DAYS: 172800 Sec
+ACCESS_TOKEN_VALIDITY_SEC=172800
+# 7 DAYS: 604800 Sec
+REFRESH_TOKEN_VALIDITY_SEC=604800
+TOKEN_ISSUER=api.goserve.afteracademy.com
+TOKEN_AUDIENCE=goserve.afteracademy.com
+
+# test run from the test directory one level below the src
+RSA_PRIVATE_KEY_PATH="../keys/private.pem"
+RSA_PUBLIC_KEY_PATH="../keys/public.pem"
+```
+
+## Configuration Loading
+
+The configuration is loaded using the following pattern:
 
 ```go
 package config
 
 import (
 	"log"
+
 	"github.com/spf13/viper"
 )
 
@@ -329,7 +182,6 @@ func NewEnv(filename string, override bool) *Env {
 	env := Env{}
 	viper.SetConfigFile(filename)
 
-	// Allow environment variables to override .env file
 	if override {
 		viper.AutomaticEnv()
 	}
@@ -348,40 +200,341 @@ func NewEnv(filename string, override bool) *Env {
 }
 ```
 
-## Environment-Specific Configuration
+## Docker Configuration
 
-### Development (Docker)
-```bash
-DB_HOST=postgres
-REDIS_HOST=redis
-GO_MODE=debug
+### Dockerfile
+
+```dockerfile
+# Use Go v1.25.6 as the base image
+FROM golang:1.25.6-alpine
+
+RUN apk add --no-cache curl
+
+# Create a new user in the docker image
+RUN adduser --disabled-password --gecos '' gouser
+
+# Create a new directory for goserve files and set the path in the container
+RUN mkdir -p /home/gouser/goserve
+
+# Set the working directory in the container
+WORKDIR /home/gouser/goserve
+
+# Copy the project files into the container
+COPY . .
+
+# Set the ownership of the goserve directory to gouser
+RUN chown -R gouser:gouser /home/gouser/goserve
+
+# Switch to the gouser user
+USER gouser
+
+# Download dependencies and build the project
+RUN go mod tidy
+RUN go build -o build/server cmd/main.go
+
+# Expose the server port (replace 8080 with your actual port)
+EXPOSE 8080
+
+# Command to run the server
+CMD ["./build/server"]
 ```
 
-### Local Development
-```bash
-DB_HOST=localhost
-REDIS_HOST=localhost
-GO_MODE=debug
+### docker-compose.yml
+
+```yaml
+services:
+  goserver:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: goserver-postgres
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - '${SERVER_PORT}:${SERVER_PORT}'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - goserve-postgres-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:18.1
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - '${DB_PORT}:5432'
+    volumes:
+      - dbdata:/data/db
+      # optional pg seed scripts
+      - ./.extra/setup/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+      - ./.extra/setup/pgseed.sql:/docker-entrypoint-initdb.d/pgseed.sql:ro
+    networks:
+      - goserve-postgres-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -h localhost -p 5432 -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  redis:
+    image: redis:8.4.0
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - '${REDIS_PORT}:6379'
+    command: redis-server --bind 0.0.0.0 --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - cache:/data/cache
+    networks:
+      - goserve-postgres-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "redis-cli",
+          "-a", "${REDIS_PASSWORD}",
+          "ping"
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  migrate:
+    image: migrate/migrate
+    env_file: .test.env
+    volumes:
+      - ./migrations:/migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - goserve-postgres-network
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        migrate -path /migrations -database "postgres://$${DB_USER}:$${DB_USER_PWD}@postgres:5432/$${DB_NAME}?sslmode=disable" up
+
+networks:
+  goserve-postgres-network:
+    driver: bridge
+
+volumes:
+  dbdata:
+  cache:
+    driver: local
 ```
 
-### Production
-```bash
-GO_MODE=release
-DB_MAX_POOL_SIZE=20
-ACCESS_TOKEN_VALIDITY_SEC=3600
+## PostgreSQL Initialization
+
+### .extra/pgseed.sql
+
+```sql
+-- Enable UUID
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- Create Tables
+-- ----------------
+
+-- Api Keys Table
+CREATE TABLE IF NOT EXISTS api_keys (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    key TEXT NOT NULL UNIQUE,
+    permissions TEXT[],
+    comments TEXT[],
+    version INTEGER,
+    status BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Api Keys Indexes
+CREATE INDEX IF NOT EXISTS api_keys_key_status_idx
+ON api_keys (key, status);
+
+-- Roles Table
+CREATE TABLE IF NOT EXISTS roles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code TEXT NOT NULL UNIQUE,
+    status BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Users Table
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+		profile_pic_url TEXT,
+		verified BOOLEAN DEFAULT FALSE,
+    status BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Join Table for Users <-> Roles
+CREATE TABLE IF NOT EXISTS user_roles (
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    role_id UUID REFERENCES roles(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, role_id)
+);
+
+-- Keystore Table
+CREATE TABLE IF NOT EXISTS keystore (
+	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+	user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	p_key TEXT NOT NULL,
+	s_key TEXT NOT NULL,
+	status BOOLEAN DEFAULT TRUE,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Keystore Table Indexes
+CREATE INDEX IF NOT EXISTS keystore_user_status_idx
+ON keystore (user_id, status);
+
+CREATE INDEX IF NOT EXISTS keystore_user_pkey_status_idx
+ON keystore (user_id, p_key, status);
+
+CREATE INDEX IF NOT EXISTS keystore_user_pkey_skey_status_idx
+ON keystore (user_id, p_key, s_key, status);
+
+-- Messages Table
+CREATE TABLE messages (
+	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+	type TEXT NOT NULL,
+	msg TEXT NOT NULL,
+	status BOOLEAN DEFAULT TRUE,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Blogs Table
+CREATE TABLE IF NOT EXISTS blogs (
+	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+	title TEXT NOT NULL,
+	description TEXT NOT NULL,
+	text TEXT,
+	draft_text TEXT NOT NULL,
+	tags TEXT[],
+	author_id UUID NOT NULL REFERENCES users(id),
+	img_url TEXT,
+	slug TEXT NOT NULL UNIQUE,
+	score DOUBLE PRECISION DEFAULT 0.01,
+	submitted BOOLEAN DEFAULT FALSE,
+	drafted BOOLEAN DEFAULT TRUE,
+	published BOOLEAN DEFAULT FALSE,
+	status BOOLEAN DEFAULT TRUE,
+	published_at TIMESTAMP,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Blogs Table Indexes
+CREATE INDEX IF NOT EXISTS blogs_publish_idx
+ON blogs (published_at DESC, score DESC)
+WHERE published = TRUE AND status = TRUE;
+
+CREATE INDEX IF NOT EXISTS blogs_tags_gin_idx
+ON blogs
+USING GIN (tags);
+
+CREATE INDEX IF NOT EXISTS blogs_search_idx
+ON blogs
+USING GIN (to_tsvector('english', title));
+
+-- Insert Data
+-- --------------
+
+-- Insert API Key
+INSERT INTO api_keys (key, permissions, comments, version, status, created_at, updated_at)
+VALUES (
+    '1D3F2DD1A5DE725DD4DF1D82BBB37',
+    ARRAY['GENERAL'],
+    ARRAY['To be used by the xyz vendor'],
+    1,
+    true,
+    NOW(),
+    NOW()
+)
+ON CONFLICT (key) DO NOTHING;
+
+-- Insert Roles
+INSERT INTO roles (code, status, created_at, updated_at)
+VALUES 
+    ('LEARNER', true, NOW(), NOW()),
+    ('AUTHOR', true, NOW(), NOW()),
+    ('EDITOR', true, NOW(), NOW()),
+    ('ADMIN', true, NOW(), NOW())
+ON CONFLICT (code) DO NOTHING;
+
+-- Insert Admin User
+INSERT INTO users (name, email, password, status, created_at, updated_at)
+VALUES (
+    'Admin', 
+    'admin@afteracademy.com', 
+    '$2a$10$psWmSrmtyZYvtIt/FuJL1OLqsK3iR1fZz5.wUYFuSNkkt.EOX9mLa',
+    true, 
+    NOW(), 
+    NOW()
+)
+ON CONFLICT (email) DO NOTHING;
+
+-- Map Admin User to ALL Roles
+INSERT INTO user_roles (user_id, role_id)
+SELECT u.id, r.id
+FROM users u
+CROSS JOIN roles r
+WHERE u.email = 'admin@afteracademy.com'
+ON CONFLICT DO NOTHING;
 ```
 
-## Best Practices
+### .extra/init-test-db.sql
+```sql
+-- Create test user
+CREATE USER goserver_test_db_user WITH PASSWORD 'changeit';
 
-1. **Never commit sensitive data** - Use `.gitignore` to exclude `.env` files
-2. **Use strong passwords** - Especially for production databases
-3. **Adjust pool sizes** - Based on your application's load
-4. **Set appropriate timeouts** - Balance between user experience and resource usage
-5. **Use environment-specific files** - Separate configurations for dev, test, and prod
-6. **Override with environment variables** - Use `override=true` for container deployments
+-- Create test database
+CREATE DATABASE goserver_test_db OWNER goserver_test_db_user;
 
-## Related
+GRANT ALL PRIVILEGES ON DATABASE goserver_test_db TO goserver_test_db_user;
+```
 
-- Learn about [Getting Started](/postgres/getting-started) to run the application
-- Understand [Architecture](/postgres/architecture) for project structure
-- Review [Core Concepts](/postgres/core-concepts) for implementation patterns
+## Configuration Best Practices
+
+### Environment Separation
+
+1. **Development** - Local development with relaxed settings
+2. **Testing** - Isolated test databases and short cache TTL
+3. **Production** - Secure credentials and optimized settings
+
+### Security Considerations
+
+1. **Never commit secrets** - Use environment variables for sensitive data
+2. **Use strong passwords** - For database and Redis connections
+3. **Limit permissions** - Database users should have minimal required permissions
+4. **Rotate keys regularly** - JWT keys and API secrets should be rotated
+
+### Performance Tuning
+
+1. **Connection pooling** - Configure appropriate pool sizes for your workload
+2. **Timeout settings** - Set reasonable timeouts to prevent hanging connections
+3. **Cache TTL** - Adjust cache expiration based on data volatility
+4. **Database indexes** - Ensure proper indexing for query performance

@@ -1,873 +1,1100 @@
 # Core Concepts
 
-This guide covers the fundamental concepts and patterns used in the goserve framework and this example application.
+This guide covers the fundamental concepts and patterns used in the goserve PostgreSQL example.
 
 ## Table of Contents
 
+- [Request](#request)
+- [Payload](#payload)
+- [Response](#response)
+- [Middleware](#middleware)
+- [Providers](#providers)
+- [DTOs (Data Transfer Objects)](#dtos-data-transfer-objects)
+- [Models](#models)
 - [Controllers](#controllers)
 - [Services](#services)
-- [Models](#models)
-- [DTOs (Data Transfer Objects)](#dtos-data-transfer-objects)
-- [Middleware](#middleware)
-- [Dependency Injection](#dependency-injection)
-- [Caching Strategy](#caching-strategy)
-- [Authentication](#authentication)
-- [Authorization](#authorization)
-- [Error Handling](#error-handling)
+- [Config](#config)
+- [Module](#module)
+- [Router](#router)
+- [Startup](#startup)
+- [Database Operations](#database-operations)
+- [Caching](#caching)
+- [Docker](#docker)
 
----
+## Request
 
-## Controllers
-
-Controllers are responsible for handling HTTP requests and responses. They define API endpoints, validate input, and delegate business logic to services.
-
-### Controller Structure
+Requests are handled using goserve's network utilities for extracting parameters, query strings, and request bodies.
 
 ```go
-type controller struct {
-    network.Controller
-    common.ContextPayload
-    service Service
-}
-
-func NewController(
-    authProvider network.AuthenticationProvider,
-    authorizeProvider network.AuthorizationProvider,
-    service Service,
-) network.Controller {
-    return &controller{
-        Controller: network.NewController("/blog", authProvider, authorizeProvider),
-        ContextPayload: common.NewContextPayload(),
-        service: service,
-    }
-}
-```
-
-### Key Responsibilities
-
-1. **Route Definition**: Define HTTP endpoints in `MountRoutes()`
-2. **Request Parsing**: Extract and validate request body, params, and query strings
-3. **Response Formation**: Send appropriate HTTP responses
-4. **Middleware Application**: Apply authentication and authorization
-
-### Example: Blog Author Controller
-
-```go
-func (c *controller) MountRoutes(group *gin.RouterGroup) {
-    // Apply authentication and authorization middleware
-    group.Use(c.Authentication(), c.Authorization(string(userModel.RoleCodeAuthor)))
-    
-    group.POST("/", c.postBlogHandler)
-    group.PUT("/", c.updateBlogHandler)
-    group.GET("/id/:id", c.getBlogHandler)
-    group.DELETE("/id/:id", c.deleteBlogHandler)
-    group.PUT("/submit/id/:id", c.submitBlogHandler)
-    group.PUT("/withdraw/id/:id", c.withdrawBlogHandler)
-    group.GET("/drafts", c.getDraftsBlogsHandler)
-    group.GET("/submitted", c.getSubmittedBlogsHandler)
-    group.GET("/published", c.getPublishedBlogsHandler)
-}
-
-func (c *controller) postBlogHandler(ctx *gin.Context) {
-    // 1. Parse request body
-    body, err := network.ReqBody[dto.BlogCreate](ctx)
-    if err != nil {
-        network.SendBadRequestError(ctx, err.Error(), err)
-        return
-    }
-
-    // 2. Get authenticated user from context
-    user := c.MustGetUser(ctx)
-
-    // 3. Call service layer
-    blog, err := c.service.CreateBlog(body, user)
-    if err != nil {
-        network.SendMixedError(ctx, err)
-        return
-    }
-
-    // 4. Send success response
-    network.SendSuccessDataResponse(ctx, "blog created successfully", &blog)
-}
-```
-
-### Request Parsing Helpers
-
-**Parsing Request Body**:
-```go
-body, err := network.ReqBody[dto.SignUpBasic](ctx)
-```
-
-**Parsing URL Parameters**:
-```go
+// Example: Extracting path parameter "id"
 uuidParam, err := network.ReqParams[coredto.UUID](ctx)
-// Access: uuidParam.ID
-```
 
-**Parsing Query String**:
-```go
+// Example: Extracting JSON request body
+body, err := network.ReqBody[dto.CreateBlog](ctx)
+
 pagination, err := network.ReqQuery[coredto.Pagination](ctx)
-// Access: pagination.Page, pagination.Limit
 ```
 
-### Response Helpers
+The framework provides a few built-in validation for request DTOs using `coredto` package.
 
 ```go
-// Success with data
-network.SendSuccessDataResponse(ctx, "success", data)
-
-// Success with message only
-network.SendSuccessMsgResponse(ctx, "operation completed")
-
-// Error responses
-network.SendBadRequestError(ctx, "invalid input", err)
-network.SendNotFoundError(ctx, "resource not found", err)
-network.SendUnauthorizedError(ctx, "permission denied", err)
-network.SendForbiddenError(ctx, "access forbidden", err)
-network.SendInternalServerError(ctx, "server error", err)
-
-// Mixed error (automatically determines error type)
-network.SendMixedError(ctx, err)
-```
-
----
-
-## Services
-
-Services contain the business logic and data access layer. They process data, interact with databases, handle caching, and enforce business rules.
-
-### Service Structure
-
-```go
-type Service interface {
-    CreateBlog(dto *dto.BlogCreate, author *userModel.User) (*dto.BlogPrivate, error)
-    UpdateBlog(dto *dto.BlogUpdate, author *userModel.User) (*dto.BlogPrivate, error)
-    GetBlogById(id uuid.UUID, author *userModel.User) (*dto.BlogPrivate, error)
-    // ... more methods
+// blog/id/:id
+type UUID struct {
+	Id string    `uri:"id" binding:"required" validate:"required,uuid"`
+	ID uuid.UUID `uri:"-" validate:"-"`
 }
 
-type service struct {
-    db          *pgxpool.Pool
-    blogService blog.Service
+func (d *UUID) GetValue() *UUID {
+	id, err := uuid.Parse(d.Id)
+	if err == nil {
+		d.ID = id
+	}
+	return d
 }
 
-func NewService(db *pgxpool.Pool, blogService blog.Service) Service {
-    return &service{
-        db:          db,
-        blogService: blogService,
-    }
+// blogs/latest?page=1&limit=10
+type Pagination struct {
+	Page  int64 `form:"page" binding:"required" validate:"required,min=1,max=1000"`
+	Limit int64 `form:"limit" binding:"required" validate:"required,min=1,max=1000"`
+}
+
+// blog/slug/:slug
+type Slug struct {
+	Slug string `uri:"slug" validate:"required,min=3,max=200"`
 }
 ```
 
-### Key Responsibilities
+## Payload
 
-1. **Business Logic**: Implement domain-specific operations
-2. **Data Access**: Query and manipulate database records
-3. **Validation**: Enforce business rules and constraints
-4. **Service Coordination**: Call other services when needed
-5. **Caching**: Manage cache operations for performance
-
-### Example: User Service
+The payload is a context wrapper that helps store and retrieve request-scoped data such as the authenticated user and API key.
 
 ```go
-func (s *service) CreateUser(
-    email string, password string, name string, 
-    profilePicURL *string, roles []*model.Role,
-) (*model.User, error) {
-    ctx := context.Background()
-    
-    // Start transaction
-    tx, err := s.db.Begin(ctx)
-    if err != nil {
-        return nil, err
-    }
-    defer tx.Rollback(ctx)
-    
-    // Insert user
-    var user model.User
-    query := `
-        INSERT INTO users (email, password, name, profile_pic_url, verified)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, email, password, name, profile_pic_url, 
-                  verified, status, created_at, updated_at
-    `
-    
-    err = tx.QueryRow(ctx, query, email, password, name, profilePicURL, false).
-        Scan(&user.ID, &user.Email, &user.Password, &user.Name, 
-             &user.ProfilePicURL, &user.Verified, &user.Status, 
-             &user.CreatedAt, &user.UpdatedAt)
-    
-    if err != nil {
-        return nil, err
-    }
-    
-    // Assign roles
-    for _, role := range roles {
-        _, err = tx.Exec(ctx, 
-            "INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2)",
-            user.ID, role.ID)
-        if err != nil {
-            return nil, err
-        }
-    }
-    
-    // Commit transaction
-    if err := tx.Commit(ctx); err != nil {
-        return nil, err
-    }
-    
-    user.Roles = roles
-    return &user, nil
-}
-```
-
-### Database Query Patterns
-
-**Simple Query**:
-```go
-query := `SELECT id, name, email FROM users WHERE id = $1`
-var user model.User
-err := s.db.QueryRow(ctx, query, userId).Scan(&user.ID, &user.Name, &user.Email)
-```
-
-**Query Multiple Rows**:
-```go
-rows, err := s.db.Query(ctx, query, param1, param2)
-if err != nil {
-    return nil, err
-}
-defer rows.Close()
-
-var items []Item
-for rows.Next() {
-    var item Item
-    if err := rows.Scan(&item.ID, &item.Name); err != nil {
-        return nil, err
-    }
-    items = append(items, item)
-}
-
-if err := rows.Err(); err != nil {
-    return nil, err
-}
-```
-
-**Execute Statement**:
-```go
-tag, err := s.db.Exec(ctx, query, param1, param2)
-if err != nil {
-    return err
-}
-rowsAffected := tag.RowsAffected()
-```
-
----
-
-## Models
-
-Models represent database table structures and define the schema for data storage.
-
-### Model Definition
-
-```go
-package model
-
-import (
-    "time"
-    "github.com/google/uuid"
+// common/payload.go
+const (
+	payloadApiKey   string = "apikey"
+	payloadUser     string = "user"
+	payloadKeystore string = "keystore"
 )
 
-const BlogsTableName = "blogs"
-
-type Blog struct {
-    ID          uuid.UUID  // id
-    Title       string     // title
-    Description string     // description
-    Text        *string    // text (nullable)
-    DraftText   string     // draft_text
-    Tags        []string   // tags
-    AuthorID    uuid.UUID  // author_id
-    ImgURL      *string    // img_url (nullable)
-    Slug        string     // slug
-    Score       float64    // score
-    Views       int64      // views
-    Likes       int64      // likes
-    Comments    int64      // comments
-    Flagged     bool       // flagged
-    Submitted   bool       // submitted
-    Drafted     bool       // drafted
-    Published   bool       // published
-    Status      bool       // status
-    PublishedAt *time.Time // published_at (nullable)
-    CreatedAt   time.Time  // created_at
-    UpdatedAt   time.Time  // updated_at
-}
-```
-
-### Field Naming Convention
-
-- **Go Field Names**: PascalCase (e.g., `AuthorID`, `CreatedAt`)
-- **Database Column Names**: snake_case (e.g., `author_id`, `created_at`)
-- **Comments**: Indicate the actual database column name
-
-### Nullable Fields
-
-Use pointers for nullable fields:
-```go
-Text        *string    // Can be NULL in database
-ImgURL      *string    // Optional field
-PublishedAt *time.Time // NULL until published
-```
-
----
-
-## DTOs (Data Transfer Objects)
-
-DTOs define the structure for request and response payloads. They provide validation and type safety for API communication.
-
-### Request DTOs
-
-```go
-package dto
-
-type SignUpBasic struct {
-    Name          string  `json:"name" binding:"required" validate:"required,min=3"`
-    Email         string  `json:"email" binding:"required" validate:"required,email"`
-    Password      string  `json:"password" binding:"required" validate:"required,min=6"`
-    ProfilePicUrl *string `json:"profilePicUrl,omitempty" validate:"omitempty,url"`
+type ContextPayload interface {
+	SetApiKey(ctx *gin.Context, value *authModel.ApiKey)
+	MustGetApiKey(ctx *gin.Context) *authModel.ApiKey
+	SetUser(ctx *gin.Context, value *userModel.User)
+	MustGetUser(ctx *gin.Context) *userModel.User
+	SetKeystore(ctx *gin.Context, value *authModel.Keystore)
+	MustGetKeystore(ctx *gin.Context) *authModel.Keystore
 }
 
-type BlogCreate struct {
-    Title       string   `json:"title" binding:"required" validate:"required,min=3,max=500"`
-    Description string   `json:"description" binding:"required" validate:"required,min=3,max=2000"`
-    DraftText   string   `json:"draftText" binding:"required" validate:"required"`
-    ImgURL      *string  `json:"imgUrl,omitempty" validate:"omitempty,uri,max=200"`
-    Tags        []string `json:"tags" binding:"required" validate:"required,dive,uppercase"`
-    Slug        string   `json:"slug" binding:"required" validate:"required,min=3,max=200"`
+type payload struct{}
+
+func NewContextPayload() ContextPayload {
+	return &payload{}
 }
+
+func (u *payload) SetApiKey(ctx *gin.Context, value *authModel.ApiKey) {
+	ctx.Set(payloadApiKey, value)
+}
+
+func (u *payload) MustGetApiKey(ctx *gin.Context) *authModel.ApiKey {
+	value, ok := ctx.MustGet(payloadApiKey).(*authModel.ApiKey)
+	if !ok {
+		panic(errors.New(payloadApiKey + " missing in context"))
+	}
+	return value
+}
+
+func (u *payload) SetUser(ctx *gin.Context, value *userModel.User) {
+	ctx.Set(payloadUser, value)
+}
+
+func (u *payload) MustGetUser(ctx *gin.Context) *userModel.User {
+	value, ok := ctx.MustGet(payloadUser).(*userModel.User)
+	if !ok {
+		panic(errors.New(payloadUser + " missing for context"))
+	}
+	return value
+}
+
+func (u *payload) SetKeystore(ctx *gin.Context, value *authModel.Keystore) {
+	ctx.Set(payloadKeystore, value)
+}
+
+func (u *payload) MustGetKeystore(ctx *gin.Context) *authModel.Keystore {
+	value, ok := ctx.MustGet(payloadKeystore).(*authModel.Keystore)
+	if !ok {
+		panic(errors.New(payloadKeystore + " missing for context"))
+	}
+	return value
+}
+
 ```
 
-### Response DTOs
+These are used in middlewares and controllers to set and get the API key, user, and keystore associated with the request.
+
+**Example**
 
 ```go
-type UserPrivate struct {
-    ID            uuid.UUID   `json:"id" binding:"required" validate:"required"`
-    Email         string      `json:"email" binding:"required" validate:"required,email"`
-    Name          string      `json:"name" binding:"required" validate:"required"`
-    ProfilePicURL *string     `json:"profilePicUrl,omitempty" validate:"omitempty,url"`
-    Roles         []*RoleInfo `json:"roles" validate:"required,dive,required"`
-}
+func (c *controller) postBlogHandler(ctx *gin.Context) {
+	body, err := network.ReqBody[dto.CreateBlog](ctx)
+	if err != nil {
+		network.SendBadRequestError(ctx, err.Error(), err)
+		return
+	}
 
-func NewUserPrivate(user *model.User) *UserPrivate {
-    var roles []*RoleInfo
-    for _, role := range user.Roles {
-        roles = append(roles, NewRoleInfo(role))
-    }
-    
-    return &UserPrivate{
-        ID:            user.ID,
-        Email:         user.Email,
-        Name:          user.Name,
-        ProfilePicURL: user.ProfilePicURL,
-        Roles:         roles,
-    }
+	// Get the authenticated user from the context set by the authentication middleware
+	user := c.MustGetUser(ctx)
+
+	b, err := c.service.CreateBlog(body, user)
+	if err != nil {
+		network.SendMixedError(ctx, err)
+		return
+	}
+
+	network.SendSuccessDataResponse(ctx, "blog created successfully", b)
 }
 ```
 
-### Validation Tags
+## Response
 
-- **`binding:"required"`**: Field is required in request
-- **`validate:"required"`**: Validation rule
-- **`validate:"min=3,max=500"`**: Length constraints
-- **`validate:"email"`**: Email format validation
-- **`validate:"url"`**: URL format validation
-- **`validate:"dive"`**: Validate array/slice elements
-- **`validate:"uppercase"`**: Must be uppercase
-- **`json:"fieldName,omitempty"`**: Omit from JSON if empty
+Responses are sent using goserve's network package for consistent formatting.
 
----
+**Response Structure**
+
+```go
+type ResCode string
+
+const (
+	success_code ResCode = "10000"
+	failue_code  ResCode = "10001"
+)
+
+type response[T any] struct {
+	ResCode ResCode `json:"code" binding:"required"`
+	Status  int     `json:"status" binding:"required"`
+	Message string  `json:"message" binding:"required"`
+	Data    *T      `json:"data,omitempty" binding:"required,omitempty"`
+}
+```
+
+Helper functions to send responses are defined in the network package:
+
+```go
+// Send success response with data
+func SendSuccessDataResponse[T any](ctx *gin.Context, message string, data T)
+// Send bad request error response
+func SendBadRequestError(ctx *gin.Context, message string, err error)
+// Send not found error response
+func SendNotFoundError(ctx *gin.Context, message string, err error)
+// Send internal server error response
+func SendInternalServerError(ctx *gin.Context, message string, err error)
+// Send unauthorized error response
+func SendUnauthorizedError(ctx *gin.Context, message string, err error)
+// Send forbidden error response
+func SendForbiddenError(ctx *gin.Context, message string, err error)
+// Send mixed error response based on error type
+func SendMixedError(ctx *gin.Context, err error)
+```
 
 ## Middleware
 
-Middleware functions process requests before they reach handlers. They handle cross-cutting concerns like authentication, authorization, logging, and error handling.
-
-### Global Middleware
-
-Global middleware is applied to all routes:
+Middleware functions are used for authentication, authorization, logging, etc. They can be defined and applied at the controller or route level. There are predefined interfaces for middleware in goserve:
 
 ```go
-func (m *module) RootMiddlewares() []network.RootMiddleware {
-    return []network.RootMiddleware{
-        coreMW.NewErrorCatcher(),      // Error recovery (MUST BE FIRST)
-        authMW.NewKeyProtection(m.AuthService), // API key validation
-        coreMW.NewNotFound(),          // 404 handler
-    }
+type RootMiddleware interface {
+	Attach(engine *gin.Engine)
+	Handler(ctx *gin.Context)
+}
+
+type Param0MiddlewareProvider interface {
+	Middleware() gin.HandlerFunc
+}
+
+type Param1MiddlewareProvider[T any] interface {
+	Middleware(param1 T) gin.HandlerFunc
+}
+
+type Param2MiddlewareProvider[T any, V any] interface {
+	Middleware(param1 T, param2 V) gin.HandlerFunc
+}
+
+type Param3MiddlewareProvider[T any, V any, W any] interface {
+	Middleware(param1 T, param2 V, param3 W) gin.HandlerFunc
+}
+
+type ParamNMiddlewareProvider[T any] interface {
+	Middleware(params ...T) gin.HandlerFunc
 }
 ```
 
-### Route-Specific Middleware
+### Root Middlewares
 
-Applied to specific routes or route groups:
+They are applied globally for all routes.
 
-```go
-func (c *controller) MountRoutes(group *gin.RouterGroup) {
-    // Public routes (no auth)
-    group.POST("/signup", c.signUpHandler)
-    
-    // Protected routes (authentication required)
-    private := group.Use(c.Authentication())
-    private.GET("/profile", c.getProfileHandler)
-    
-    // Role-protected routes
-    group.Use(
-        c.Authentication(), 
-        c.Authorization(string(userModel.RoleCodeAuthor)),
-    )
-    group.POST("/blog", c.createBlogHandler)
-}
-```
+#### keyProtection
 
-### API Key Protection
-
-All requests must include a valid API key:
+This middleware checks for the presence and validity of the `x-api-key` header in incoming requests.
 
 ```go
+// api/auth/middleware/keyprotection.go
+
 type keyProtection struct {
-    common.ContextPayload
-    authService auth.Service
+	common.ContextPayload
+	authService auth.Service
+}
+
+func NewKeyProtection(authService auth.Service) network.RootMiddleware {
+	return &keyProtection{
+		ContextPayload: common.NewContextPayload(),
+		authService:    authService,
+	}
+}
+
+func (m *keyProtection) Attach(engine *gin.Engine) {
+	engine.Use(m.Handler)
 }
 
 func (m *keyProtection) Handler(ctx *gin.Context) {
-    key := ctx.GetHeader(network.ApiKeyHeader)
-    if len(key) == 0 {
-        network.SendUnauthorizedError(ctx, "missing x-api-key header", nil)
-        return
-    }
-    
-    apikey, err := m.authService.FetchApiKey(key)
-    if err != nil {
-        network.SendForbiddenError(ctx, "invalid x-api-key", err)
-        return
-    }
-    
-    m.SetApiKey(ctx, apikey)
-    ctx.Next()
+	key := ctx.GetHeader(network.ApiKeyHeader)
+	if len(key) == 0 {
+		network.SendUnauthorizedError(ctx, "permission denied: missing x-api-key header", nil)
+		return
+	}
+
+	apikey, err := m.authService.FindApiKey(key)
+	if err != nil {
+		network.SendForbiddenError(ctx, "permission denied: invalid x-api-key", err)
+		return
+	}
+
+	m.SetApiKey(ctx, apikey)
+
+	ctx.Next()
 }
 ```
 
----
+### Error Handling Middleware
 
-## Dependency Injection
-
-The application uses a module pattern for dependency injection, centralizing service initialization and wiring.
-
-### Module Structure
+The framework includes a global error catcher middleware to handle panics and send structured error responses.
 
 ```go
-type module struct {
-    Context     context.Context
-    Env         *config.Env
-    DB          postgres.Database
-    Store       redis.Store
-    UserService user.Service
-    AuthService auth.Service
-    BlogService blog.Service
+type errorCatcher struct {
 }
 
-func NewModule(
-    context context.Context, 
-    env *config.Env, 
-    db postgres.Database, 
-    store redis.Store,
-) Module {
-    // Initialize services with dependencies
-    userService := user.NewService(db.Pool())
-    authService := auth.NewService(db.Pool(), env, userService)
-    blogService := blog.NewService(db.Pool(), store, userService)
-    
-    return &module{
-        Context:     context,
-        Env:         env,
-        DB:          db,
-        Store:       store,
-        UserService: userService,
-        AuthService: authService,
-        BlogService: blogService,
-    }
-}
-
-func (m *module) Controllers() []network.Controller {
-    return []network.Controller{
-        auth.NewController(m.AuthenticationProvider(), m.AuthorizationProvider(), m.AuthService),
-        user.NewController(m.AuthenticationProvider(), m.AuthorizationProvider(), m.UserService),
-        blog.NewController(m.AuthenticationProvider(), m.AuthorizationProvider(), m.BlogService),
-        author.NewController(m.AuthenticationProvider(), m.AuthorizationProvider(), 
-            author.NewService(m.DB.Pool(), m.BlogService)),
-        editor.NewController(m.AuthenticationProvider(), m.AuthorizationProvider(), 
-            editor.NewService(m.DB.Pool(), m.UserService)),
-        blogs.NewController(m.AuthenticationProvider(), m.AuthorizationProvider(), 
-            blogs.NewService(m.DB.Pool(), m.Store)),
-        contact.NewController(m.AuthenticationProvider(), m.AuthorizationProvider(), 
-            contact.NewService(m.DB.Pool())),
-    }
-}
-```
-
-### Benefits
-
-1. **Centralized Configuration**: All dependencies initialized in one place
-2. **Testability**: Easy to mock dependencies for testing
-3. **Maintainability**: Clear dependency relationships
-4. **Type Safety**: Compile-time checking of dependencies
-
----
-
-## Caching Strategy
-
-The application uses Redis for caching frequently accessed data to improve performance.
-
-### Cache Implementation
-
-```go
-type service struct {
-    db              *pgxpool.Pool
-    publicBlogCache redis.Cache[dto.BlogPublic]
-    userService     user.Service
-}
-
-func NewService(db *pgxpool.Pool, store redis.Store, userService user.Service) Service {
-    return &service{
-        db:              db,
-        publicBlogCache: redis.NewCache[dto.BlogPublic](store),
-        userService:     userService,
-    }
-}
-```
-
-### Cache Operations
-
-**Set Cache**:
-```go
-func (s *service) SetBlogDtoCacheById(blog *dto.BlogPublic) error {
-    key := "blog_" + blog.ID.String()
-    return s.publicBlogCache.SetJSON(key, blog, 10*time.Minute)
-}
-```
-
-**Get Cache**:
-```go
-func (s *service) GetBlogDtoCacheById(id uuid.UUID) (*dto.BlogPublic, error) {
-    key := "blog_" + id.String()
-    return s.publicBlogCache.GetJSON(key)
-}
-```
-
-**Cache-Aside Pattern**:
-```go
-func (c *controller) getBlogByIdHandler(ctx *gin.Context) {
-    uuidParam, err := network.ReqParams[coredto.UUID](ctx)
-    if err != nil {
-        network.SendBadRequestError(ctx, err.Error(), err)
-        return
-    }
-    
-    // Try cache first
-    blog, err := c.service.GetBlogDtoCacheById(uuidParam.ID)
-    if err == nil {
-        network.SendSuccessDataResponse(ctx, "success", blog)
-        return
-    }
-    
-    // Cache miss - fetch from database
-    blog, err = c.service.GetPublisedBlogById(uuidParam.ID)
-    if err != nil {
-        network.SendMixedError(ctx, err)
-        return
-    }
-    
-    // Update cache
-    network.SendSuccessDataResponse(ctx, "success", blog)
-    c.service.SetBlogDtoCacheById(blog)
-}
-```
-
-### Cache Key Naming Convention
-
-- **By ID**: `blog_{uuid}`
-- **By Slug**: `blog_{slug}`
-- **List Data**: `similar_blogs_{uuid}`
-- Use consistent prefixes for related data
-
----
-
-## Authentication
-
-The application uses JWT (JSON Web Tokens) with RSA signing for stateless authentication.
-
-### Token Structure
-
-**Access Token**: Short-lived (default: 1 hour)
-```go
-accessTokenClaims := jwt.RegisteredClaims{
-    Issuer:    "goserve-api",
-    Subject:   user.ID.String(),
-    Audience:  []string{"goserve-client"},
-    IssuedAt:  jwt.NewNumericDate(time.Now()),
-    NotBefore: jwt.NewNumericDate(time.Now()),
-    ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
-    ID:        primaryKey,  // Random 32-char string
-}
-```
-
-**Refresh Token**: Long-lived (default: 10 days)
-```go
-refreshTokenClaims := jwt.RegisteredClaims{
-    Issuer:    "goserve-api",
-    Subject:   user.ID.String(),
-    Audience:  []string{"goserve-client"},
-    IssuedAt:  jwt.NewNumericDate(time.Now()),
-    NotBefore: jwt.NewNumericDate(time.Now()),
-    ExpiresAt: jwt.NewNumericDate(time.Now().Add(240 * time.Hour)),
-    ID:        secondaryKey,  // Random 32-char string
-}
-```
-
-### Keystore Concept
-
-Each token pair is tracked in a `keystore` table:
-- **Primary Key**: Stored in Access Token ID claim
-- **Secondary Key**: Stored in Refresh Token ID claim
-- **Purpose**: Enables token invalidation (logout, refresh)
-
-```go
-type Keystore struct {
-    ID           uuid.UUID
-    UserID       uuid.UUID
-    PrimaryKey   string  // From access token
-    SecondaryKey string  // From refresh token
-    Status       bool
-    CreatedAt    time.Time
-    UpdatedAt    time.Time
-}
-```
-
-### Authentication Flow
-
-1. **User Signs Up/In**: Generate token pair + keystore entry
-2. **Request with Token**: Middleware verifies token + keystore existence
-3. **Token Refresh**: Verify both tokens, delete old keystore, create new pair
-4. **Sign Out**: Delete keystore entry (invalidates tokens)
-
-### Authentication Middleware
-
-```go
-func (m *authenticationProvider) Middleware() gin.HandlerFunc {
-    return func(ctx *gin.Context) {
-        // 1. Extract token from Authorization header
-        authHeader := ctx.GetHeader(network.AuthorizationHeader)
-        token := utils.ExtractBearerToken(authHeader)
-        
-        // 2. Verify and decode token
-        claims, err := m.authService.VerifyToken(token)
-        if err != nil {
-            network.SendUnauthorizedError(ctx, err.Error(), err)
-            return
-        }
-        
-        // 3. Validate claims
-        valid := m.authService.ValidateClaims(claims)
-        if !valid {
-            network.SendUnauthorizedError(ctx, "invalid claims", nil)
-            return
-        }
-        
-        // 4. Fetch user
-        userId, _ := uuid.Parse(claims.Subject)
-        user, err := m.userService.FetchUserById(userId)
-        if err != nil {
-            network.SendUnauthorizedError(ctx, "user not found", err)
-            return
-        }
-        
-        // 5. Verify keystore
-        keystore, err := m.authService.FetchKeystore(user, claims.ID)
-        if err != nil || keystore == nil {
-            network.SendUnauthorizedError(ctx, "invalid token", err)
-            return
-        }
-        
-        // 6. Set user and keystore in context
-        m.SetUser(ctx, user)
-        m.SetKeystore(ctx, keystore)
-        
-        ctx.Next()
-    }
-}
-```
-
-### Using Authentication
-
-```go
-// In controller
-func (c *controller) MountRoutes(group *gin.RouterGroup) {
-    // Apply authentication middleware
-    group.Use(c.Authentication())
-    group.GET("/profile", c.getProfileHandler)
-}
-
-func (c *controller) getProfileHandler(ctx *gin.Context) {
-    // Access authenticated user
-    user := c.MustGetUser(ctx)
-    // ... use user.ID, user.Email, etc.
-}
-```
-
----
-
-## Authorization
-
-Authorization uses role-based access control (RBAC) to restrict access to specific endpoints.
-
-### Roles
-
-```go
-const (
-    RoleCodeLearner RoleCode = "LEARNER"  // Default user role
-    RoleCodeAdmin   RoleCode = "ADMIN"    // Admin role
-    RoleCodeAuthor  RoleCode = "AUTHOR"   // Can create/edit blogs
-    RoleCodeEditor  RoleCode = "EDITOR"   // Can publish blogs
-)
-```
-
-### Authorization Middleware
-
-```go
-func (m *authorizationProvider) Middleware(roleNames ...string) gin.HandlerFunc {
-    return func(ctx *gin.Context) {
-        if len(roleNames) == 0 {
-            network.SendForbiddenError(ctx, "role missing", nil)
-            return
-        }
-        
-        user := m.MustGetUser(ctx)
-        
-        // Check if user has any of the required roles
-        hasRole := false
-        for _, requiredRole := range roleNames {
-            for _, userRole := range user.Roles {
-                if userRole.Code == model.RoleCode(requiredRole) {
-                    hasRole = true
-                    break
-                }
-            }
-            if hasRole {
-                break
-            }
-        }
-        
-        if !hasRole {
-            network.SendForbiddenError(ctx, "insufficient role", nil)
-            return
-        }
-        
-        ctx.Next()
-    }
-}
-```
-
-### Using Authorization
-
-```go
-func (c *controller) MountRoutes(group *gin.RouterGroup) {
-    // Require AUTHOR role
-    group.Use(
-        c.Authentication(), 
-        c.Authorization(string(userModel.RoleCodeAuthor)),
-    )
-    group.POST("/blog", c.createBlogHandler)
-    
-    // Require EDITOR role
-    editorGroup := group.Group("/editor")
-    editorGroup.Use(
-        c.Authentication(),
-        c.Authorization(string(userModel.RoleCodeEditor)),
-    )
-    editorGroup.PUT("/publish/:id", c.publishHandler)
-}
-```
-
----
-
-## Error Handling
-
-The application uses custom error types with automatic HTTP status code mapping.
-
-### Error Types
-
-```go
-// goserve framework provides these error constructors:
-network.NewBadRequestError("message", err)       // 400
-network.NewUnauthorizedError("message", err)     // 401
-network.NewForbiddenError("message", err)        // 403
-network.NewNotFoundError("message", err)         // 404
-network.NewInternalServerError("message", err)   // 500
-```
-
-### Mixed Error Handler
-
-Automatically determines the appropriate HTTP status:
-
-```go
-func (c *controller) updateBlogHandler(ctx *gin.Context) {
-    // ... parse request
-    
-    blog, err := c.service.UpdateBlog(body, user)
-    if err != nil {
-        // Automatically maps error type to HTTP status
-        network.SendMixedError(ctx, err)
-        return
-    }
-    
-    network.SendSuccessDataResponse(ctx, "success", blog)
-}
-```
-
-### Error Catcher Middleware
-
-Global error recovery to prevent crashes:
-
-```go
 func NewErrorCatcher() network.RootMiddleware {
-    return &errorCatcher{}
+	return &errorCatcher{}
+}
+
+func (m *errorCatcher) Attach(engine *gin.Engine) {
+	engine.Use(m.Handler)
 }
 
 func (m *errorCatcher) Handler(ctx *gin.Context) {
-    defer func() {
-        if err := recover(); err != nil {
-            log.Printf("Panic recovered: %v", err)
-            network.SendInternalServerError(ctx, "internal server error", nil)
-        }
-    }()
-    ctx.Next()
+	defer func() {
+		if r := recover(); r != nil {
+			if err, ok := r.(error); ok {
+				network.SendInternalServerError(ctx, err.Error(), err)
+			} else {
+				network.SendInternalServerError(ctx, "something went wrong", nil)
+			}
+			ctx.Abort()
+		}
+	}()
+	ctx.Next()
 }
 ```
 
-### Error Response Format
+### Notfound Middleware
 
-```json
-{
-  "statusCode": "BadRequestError",
-  "message": "Blog with slug: example-slug already exists",
-  "error": {
-    "details": "..."
-  }
+This middleware handles 404 Not Found errors for unmatched routes.
+
+```go
+type notFound struct {
+}
+
+func NewNotFound() network.RootMiddleware {
+	return &notFound{}
+}
+
+func (m *notFound) Attach(engine *gin.Engine) {
+	engine.NoRoute(m.Handler)
+}
+
+func (m *notFound) Handler(ctx *gin.Context) {
+	network.SendNotFoundError(ctx, "url not found", nil)
 }
 ```
 
----
+## Providers
 
-## Next Steps
+Providers are specialized middleware for providing authentication and authorization handlers.
 
-- See [Architecture](/postgres/architecture) for detailed project structure
-- Check [Configuration](/postgres/configuration) for environment setup
-- Review [API Reference](/postgres/api-reference) for endpoint documentation
+```go
+type AuthenticationProvider Param0MiddlewareProvider
+type AuthorizationProvider ParamNMiddlewareProvider[string]
+```
+
+#### Authentication Provider
+
+This middleware validates JWT tokens in the `Authorization` header.
+
+```go
+type authenticationProvider struct {
+	common.ContextPayload
+	authService auth.Service
+	userService user.Service
+}
+
+func NewAuthenticationProvider(authService auth.Service, userService user.Service) network.AuthenticationProvider {
+	return &authenticationProvider{
+		ContextPayload: common.NewContextPayload(),
+		authService:    authService,
+		userService:    userService,
+	}
+}
+
+func (m *authenticationProvider) Middleware() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		authHeader := ctx.GetHeader(network.AuthorizationHeader)
+		if len(authHeader) == 0 {
+			network.SendUnauthorizedError(ctx, "permission denied: missing Authorization", nil)
+			return
+		}
+
+		token := utils.ExtractBearerToken(authHeader)
+		if token == "" {
+			network.SendUnauthorizedError(ctx, "permission denied: invalid Authorization", nil)
+			return
+		}
+
+		claims, err := m.authService.VerifyToken(token)
+		if err != nil {
+			network.SendUnauthorizedError(ctx, err.Error(), err)
+			return
+		}
+
+		valid := m.authService.ValidateClaims(claims)
+		if !valid {
+			network.SendUnauthorizedError(ctx, "permission denied: invalid claims", nil)
+			return
+		}
+
+		userId, err := postgres.NewObjectID(claims.Subject)
+		if err != nil {
+			network.SendUnauthorizedError(ctx, "permission denied: invalid claims subject", nil)
+			return
+		}
+
+		user, err := m.userService.FindUserById(userId)
+		if err != nil {
+			network.SendUnauthorizedError(ctx, "permission denied: claims subject does not exists", err)
+			return
+		}
+
+		keystore, err := m.authService.FindKeystore(user, claims.ID)
+		if err != nil || keystore == nil {
+			network.SendUnauthorizedError(ctx, "permission denied: invalid access token", err)
+			return
+		}
+
+		m.SetUser(ctx, user)
+		m.SetKeystore(ctx, keystore)
+
+		ctx.Next()
+	}
+}
+```
+
+#### Authorization Provider
+
+This middleware checks if the authenticated user has the required role to access the endpoint.
+
+```go
+type authorizationProvider struct {
+	common.ContextPayload
+}
+
+func NewAuthorizationProvider() network.AuthorizationProvider {
+	return &authorizationProvider{
+		ContextPayload: common.NewContextPayload(),
+	}
+}
+
+func (m *authorizationProvider) Middleware(roleNames ...string) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		if len(roleNames) == 0 {
+			network.SendForbiddenError(ctx, "permission denied: role missing", nil)
+			return
+		}
+
+		user := m.MustGetUser(ctx)
+
+		hasRole := false
+		for _, code := range roleNames {
+			for _, role := range user.RoleDocs {
+				if role.Code == model.RoleCode(code) {
+					hasRole = true
+					break
+				}
+			}
+			if hasRole {
+				break
+			}
+		}
+
+		if !hasRole {
+			network.SendForbiddenError(ctx, "permission denied: does not have suffient role", nil)
+			return
+		}
+
+		ctx.Next()
+	}
+}
+```
+
+## DTOs (Data Transfer Objects)
+
+DTOs define the structure of data transferred between layers. DTO can be created by implementing the `Dto[T]` or `DtoV[T]` interfaces or plain structs.
+
+```go
+type Dto[T any] interface {
+	GetValue() *T
+}
+
+type DtoV[T any] interface {
+	Dto[T]
+	ValidateErrors(errs validator.ValidationErrors) ([]string, error)
+}
+```
+
+### Request/Response DTOs
+
+Most often, plain structs are sufficient, since the validations are handled by the architecture out of the box. But for more complex cases, you can implement your own interfaces to ValidateErrors.
+
+**Example:**
+
+```go
+type InfoSample struct {
+	ID        uuid.UUID `json:"_id" binding:"required"`
+	Field     string    `json:"field" binding:"required"`
+	CreatedAt time.Time `json:"createdAt" binding:"required"`
+}
+```
+
+Note: The response DTOs are also validated using the `binding` tags.
+
+## Models
+
+Models represent PostgreSQL records.
+
+### PostgreSQL Record Model
+
+```go
+const SampleTableName = "samples"
+
+type Sample struct {
+	ID        uuid.UUID  // id
+	Field     string     // field
+	Status    bool       // status
+	CreatedAt time.Time  // created_at
+	UpdatedAt time.Time  // updated_at
+}
+
+```
+
+## Controllers
+
+Controllers are responsible for handling HTTP requests and responses. They define API endpoints and delegate business logic to services.
+
+### Controller Interface
+
+```go
+type Controller interface {
+	Path() string
+	Authentication() gin.HandlerFunc
+	Authorization(role string) gin.HandlerFunc
+	MountRoutes(group *gin.RouterGroup)
+}
+```
+
+### Basic Controller
+
+```go
+type controller struct {
+	network.Controller
+	common.ContextPayload
+	service Service
+}
+
+func NewController(
+	authMFunc network.AuthenticationProvider,
+	authorizeMFunc network.AuthorizationProvider,
+	service Service,
+) network.Controller {
+	return &controller{
+		Controller: network.NewController("/sample", authMFunc, authorizeMFunc),
+		ContextPayload: common.NewContextPayload(),
+		service:  service,
+	}
+}
+
+func (c *controller) MountRoutes(group *gin.RouterGroup) {
+	group.GET("/id/:id", c.getSampleHandler)
+}
+
+func (c *controller) getSampleHandler(ctx *gin.Context) {
+	uuidParam, err := network.ReqParams[coredto.UUID](ctx)
+	if err != nil {
+		network.SendBadRequestError(ctx, err.Error(), err)
+		return
+	}
+
+	sample, err := c.service.FindSample(uuidParam.ID)
+	if err != nil {
+		network.SendNotFoundError(ctx, "sample not found", err)
+		return
+	}
+
+	data, err := utility.MapTo[dto.InfoSample](sample)
+	if err != nil {
+		network.SendInternalServerError(ctx, "something went wrong", err)
+		return
+	}
+
+	network.SendSuccessDataResponse(ctx, "success", data)
+}
+
+```
+
+## Services
+
+Services contain business logic and coordinate between controllers and the database.
+
+### Service Pattern
+
+```go
+type Service interface {
+	FindSample(id uuid.UUID) (*model.Sample, error)
+}
+
+type service struct {
+	db              postgres.Database
+	infoSampleCache     redis.Cache[dto.InfoSample]
+}
+
+func NewService(db postgres.Database, store redis.Store) Service {
+	return &service{
+	  db:              db,
+		infoSampleCache:     redis.NewCache[dto.InfoSample](store),
+	}
+}
+
+func (s *service) FindSample(id uuid.UUID) (*model.Sample, error) {
+  ctx := context.Background()
+	
+	query := `
+		SELECT
+			id,
+			field,
+			status,
+			created_at,
+			updated_at
+		FROM samples
+		WHERE id = $1
+	`
+
+	var m model.Sample
+
+	err := s.db.Pool().QueryRow(ctx, query, id).
+		Scan(
+			&m.ID,
+			&m.Field,
+			&m.Status,
+			&m.CreatedAt,
+			&m.UpdatedAt,
+		)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &m, nil
+}
+
+```
+
+## Config
+
+Configuration is managed using environment variables loaded into a struct.
+
+```go
+// config/env.go
+type Env struct {
+	// server
+	GoMode     string `mapstructure:"GO_MODE"`
+	ServerHost string `mapstructure:"SERVER_HOST"`
+	ServerPort uint16 `mapstructure:"SERVER_PORT"`
+	// database
+	DBHost         string `mapstructure:"DB_HOST"`
+	DBName         string `mapstructure:"DB_NAME"`
+	DBPort         uint16 `mapstructure:"DB_PORT"`
+	DBUser         string `mapstructure:"DB_USER"`
+	DBUserPwd      string `mapstructure:"DB_USER_PWD"`
+	DBMinPoolSize  uint16 `mapstructure:"DB_MIN_POOL_SIZE"`
+	DBMaxPoolSize  uint16 `mapstructure:"DB_MAX_POOL_SIZE"`
+	DBQueryTimeout uint16 `mapstructure:"DB_QUERY_TIMEOUT_SEC"`
+	// redis
+	RedisHost string `mapstructure:"REDIS_HOST"`
+	RedisPort uint16 `mapstructure:"REDIS_PORT"`
+	RedisPwd  string `mapstructure:"REDIS_PASSWORD"`
+	RedisDB   int    `mapstructure:"REDIS_DB"`
+	// keys
+	RSAPrivateKeyPath string `mapstructure:"RSA_PRIVATE_KEY_PATH"`
+	RSAPublicKeyPath  string `mapstructure:"RSA_PUBLIC_KEY_PATH"`
+	// Token
+	AccessTokenValiditySec  uint64 `mapstructure:"ACCESS_TOKEN_VALIDITY_SEC"`
+	RefreshTokenValiditySec uint64 `mapstructure:"REFRESH_TOKEN_VALIDITY_SEC"`
+	TokenIssuer             string `mapstructure:"TOKEN_ISSUER"`
+	TokenAudience           string `mapstructure:"TOKEN_AUDIENCE"`
+}
+
+func NewEnv(filename string, override bool) *Env {
+	env := Env{}
+	viper.SetConfigFile(filename)
+
+	if override {
+		viper.AutomaticEnv()
+	}
+
+	err := viper.ReadInConfig()
+	if err != nil {
+		log.Fatal("Error reading environment file", err)
+	}
+
+	err = viper.Unmarshal(&env)
+	if err != nil {
+		log.Fatal("Error loading environment file", err)
+	}
+
+	return &env
+}
+```
+
+## Module
+
+Modules act as a dependency injection container, initializing and providing services, controllers, and middlewares. It implements the `network.Module` interface:
+
+```go
+type BaseModule[T any] interface {
+	GetInstance() *T
+	RootMiddlewares() []RootMiddleware
+	AuthenticationProvider() AuthenticationProvider
+	AuthorizationProvider() AuthorizationProvider
+}
+
+type Module[T any] interface {
+	BaseModule[T]
+	Controllers() []Controller
+}
+```
+
+### Project Module
+
+```go
+// startup/module.go
+type Module network.Module[module]
+
+type module struct {
+	Context       context.Context
+	Env           *config.Env
+	DB            postgres.Database
+	Store         redis.Store
+	UserService   user.Service
+	AuthService   auth.Service
+	BlogService   blog.Service
+	HealthService health.Service
+}
+
+func (m *module) GetInstance() *module {
+	return m
+}
+
+// OpenControllers are controllers that do not require api key authentication
+func (m *module) OpenControllers() []network.Controller {
+	return []network.Controller{health.NewController(m.HealthService)}
+}
+
+func (m *module) Controllers() []network.Controller {
+	return []network.Controller{
+		auth.NewController(m.AuthenticationProvider(), m.AuthorizationProvider(), m.AuthService),
+		user.NewController(m.AuthenticationProvider(), m.AuthorizationProvider(), m.UserService),
+		blog.NewController(m.AuthenticationProvider(), m.AuthorizationProvider(), m.BlogService),
+		author.NewController(m.AuthenticationProvider(), m.AuthorizationProvider(), author.NewService(m.DB, m.BlogService)),
+		editor.NewController(m.AuthenticationProvider(), m.AuthorizationProvider(), editor.NewService(m.DB, m.UserService)),
+		blogs.NewController(m.AuthenticationProvider(), m.AuthorizationProvider(), blogs.NewService(m.DB, m.Store)),
+		contact.NewController(m.AuthenticationProvider(), m.AuthorizationProvider(), contact.NewService(m.DB)),
+	}
+}
+
+func (m *module) RootMiddlewares() []network.RootMiddleware {
+	return []network.RootMiddleware{
+		coreMW.NewErrorCatcher(), // NOTE: this should be the first handler to be mounted
+		authMW.NewKeyProtection(m.AuthService),
+		coreMW.NewNotFound(),
+	}
+}
+
+func (m *module) AuthenticationProvider() network.AuthenticationProvider {
+	return authMW.NewAuthenticationProvider(m.AuthService, m.UserService)
+}
+
+func (m *module) AuthorizationProvider() network.AuthorizationProvider {
+	return authMW.NewAuthorizationProvider()
+}
+
+func NewModule(context context.Context, env *config.Env, db postgres.Database, store redis.Store) Module {
+	userService := user.NewService(db)
+	authService := auth.NewService(db, env, userService)
+	blogService := blog.NewService(db, store, userService)
+	healthService := health.NewService()
+
+	return &module{
+		Context:       context,
+		Env:           env,
+		DB:            db,
+		Store:         store,
+		UserService:   userService,
+		AuthService:   authService,
+		BlogService:   blogService,
+		HealthService: healthService,
+	}
+}
+
+```
+
+## Router
+
+The router sets up the Gin engine, applies middlewares, and mounts controllers.
+
+```go
+// startup/router.go create function
+module := NewModule(context, env, db, store)
+
+router := network.NewRouter(env.GoMode)
+router.RegisterValidationParsers(network.CustomTagNameFunc())
+router.LoadControllers(module.GetInstance().OpenControllers())
+router.LoadRootMiddlewares(module.RootMiddlewares())
+router.LoadControllers(module.Controllers())
+```
+
+## Startup
+
+The startup package initializes the server, database connections, and other components.
+
+```go
+type Shutdown = func()
+
+func Server() {
+	env := config.NewEnv(".env", true)
+	router, _, shutdown := create(env)
+	defer shutdown()
+	router.Start(env.ServerHost, env.ServerPort)
+}
+
+func create(env *config.Env) (network.Router, Module, Shutdown) {
+	context := context.Background()
+
+	dbConfig := postgres.DbConfig{
+		User:        env.DBUser,
+		Pwd:         env.DBUserPwd,
+		Host:        env.DBHost,
+		Port:        env.DBPort,
+		Name:        env.DBName,
+		MinPoolSize: env.DBMinPoolSize,
+		MaxPoolSize: env.DBMaxPoolSize,
+		Timeout:     time.Duration(env.DBQueryTimeout) * time.Second,
+	}
+
+	db := postgres.NewDatabase(context, dbConfig)
+	db.Connect()
+
+	redisConfig := redis.Config{
+		Host: env.RedisHost,
+		Port: env.RedisPort,
+		Pwd:  env.RedisPwd,
+		DB:   env.RedisDB,
+	}
+
+	store := redis.NewStore(context, &redisConfig)
+	store.Connect()
+
+	module := NewModule(context, env, db, store)
+
+	router := network.NewRouter(env.GoMode)
+	router.RegisterValidationParsers(network.CustomTagNameFunc())
+	router.LoadControllers(module.GetInstance().OpenControllers())
+	router.LoadRootMiddlewares(module.RootMiddlewares())
+	router.LoadControllers(module.Controllers())
+
+	shutdown := func() {
+		db.Disconnect()
+		store.Disconnect()
+	}
+
+	return router, module, shutdown
+}
+```
+
+## Database Operations
+
+### MongoDB Query Patterns
+
+goserve used pgx library for PostgreSQL operations. You can find the basic query patterns from the library documentation: [github.com/jackc/pgx](https://github.com/jackc/pgx)
+
+```go
+// Single document queries
+ctx := context.Background()
+	
+query := `
+	SELECT
+		id,
+		field,
+		status,
+		created_at,
+		updated_at
+	FROM samples
+	WHERE id = $1
+`
+
+var m model.Sample
+
+err := s.db.Pool().QueryRow(ctx, query, id).
+	Scan(
+		&m.ID,
+		&m.Field,
+		&m.Status,
+		&m.CreatedAt,
+		&m.UpdatedAt,
+	)
+```
+
+### Database Migrations
+Database migrations are managed using the `golang-migrate/migrate` tool. Migration files are located in the `migrations/` directory.
+To run migrations, use the following command:
+
+### Connection Management
+
+```go
+// startup/server.go create function
+context := context.Background()
+
+dbConfig := postgres.DbConfig{
+	User:        env.DBUser,
+	Pwd:         env.DBUserPwd,
+	Host:        env.DBHost,
+	Port:        env.DBPort,
+	Name:        env.DBName,
+	MinPoolSize: env.DBMinPoolSize,
+	MaxPoolSize: env.DBMaxPoolSize,
+	Timeout:     time.Duration(env.DBQueryTimeout) * time.Second,
+}
+
+db := postgres.NewDatabase(context, dbConfig)
+db.Connect()
+
+shutdown := func() {
+	db.Disconnect()
+	//...
+}
+```
+
+## Caching
+
+### Redis Integration
+
+```go
+// Cache configuration
+type service struct {
+	publicBlogCache  redis.Cache[dto.PublicBlog]
+	//...
+}
+
+func NewService(db postgres.Database, store redis.Store, userService user.Service) Service {
+	return &service{
+		publicBlogCache:  redis.NewCache[dto.PublicBlog](store),
+		// ...
+	}
+}
+
+func (s *service) SetBlogDtoCacheById(blog *dto.PublicBlog) error {
+	key := "blog_" + blog.ID.Hex()
+	return s.publicBlogCache.SetJSON(key, blog, time.Duration(10*time.Minute))
+}
+
+func (s *service) GetBlogDtoCacheById(id primitive.ObjectID) (*dto.PublicBlog, error) {
+	key := "blog_" + id.Hex()
+	return s.publicBlogCache.GetJSON(key)
+}
+```
+
+## Docker
+
+The project includes Docker configurations for containerized deployment.
+
+### Dockerfile
+
+```dockerfile
+# Use Go v1.25.6 as the base image
+FROM golang:1.25.6-alpine
+
+RUN apk add --no-cache curl
+
+# Create a new user in the docker image
+RUN adduser --disabled-password --gecos '' gouser
+
+# Create a new directory for goserve files and set the path in the container
+RUN mkdir -p /home/gouser/goserve
+
+# Set the working directory in the container
+WORKDIR /home/gouser/goserve
+
+# Copy the project files into the container
+COPY . .
+
+# Set the ownership of the goserve directory to gouser
+RUN chown -R gouser:gouser /home/gouser/goserve
+
+# Switch to the gouser user
+USER gouser
+
+# Download dependencies and build the project
+RUN go mod tidy
+RUN go build -o build/server cmd/main.go
+
+# Expose the server port (replace 8080 with your actual port)
+EXPOSE 8080
+
+# Command to run the server
+CMD ["./build/server"]
+```
+
+### Docker-Compose
+
+```yaml
+services:
+  goserver:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: goserver-postgres
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - '${SERVER_PORT}:${SERVER_PORT}'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - goserve-postgres-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:18.1
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - '${DB_PORT}:5432'
+    volumes:
+      - dbdata:/data/db
+      # optional pg seed scripts
+      - ./.extra/setup/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+      - ./.extra/setup/pgseed.sql:/docker-entrypoint-initdb.d/pgseed.sql:ro
+    networks:
+      - goserve-postgres-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -h localhost -p 5432 -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  redis:
+    image: redis:8.4.0
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - '${REDIS_PORT}:6379'
+    command: redis-server --bind 0.0.0.0 --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - cache:/data/cache
+    networks:
+      - goserve-postgres-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "redis-cli",
+          "-a", "${REDIS_PASSWORD}",
+          "ping"
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  migrate:
+    image: migrate/migrate
+    env_file: .test.env
+    volumes:
+      - ./migrations:/migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - goserve-postgres-network
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        migrate -path /migrations -database "postgres://$${DB_USER}:$${DB_USER_PWD}@postgres:5432/$${DB_NAME}?sslmode=disable" up
+
+networks:
+  goserve-postgres-network:
+    driver: bridge
+
+volumes:
+  dbdata:
+  cache:
+    driver: local
+```
+
+## Best Practices
+
+### PostgreSQL Best Practices
+
+1. **Use UUID** - use UUID for document identification
+2. **Migrations** - manage schema changes using migration tools
+3. **Connection Pooling** - configure min/max pool sizes for optimal performance
+4. **Handle Errors** - Proper error handling for PostgreSQL operations
+
+### Service Layer Best Practices
+
+1. **Business Logic Only** - Keep services focused on business rules
+2. **Error Handling** - Use structured errors with proper HTTP status codes
+3. **Caching Strategy** - Implement cache-aside pattern appropriately
+
+### API Design Best Practices
+
+1. **RESTful Endpoints** - Use proper HTTP methods and resource naming
+2. **Consistent Responses** - Use goserve's response helpers
+3. **Input Validation** - Validate requests at controller level
+4. **Authentication** - Protect sensitive endpoints with JWT

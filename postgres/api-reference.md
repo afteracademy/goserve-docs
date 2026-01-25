@@ -1,8 +1,15 @@
 # API Reference
 
-Complete API endpoint reference for the goserve blog platform. All endpoints require an API key in the `x-api-key` header unless otherwise noted.
+Complete API endpoint reference for the goserve MongoDB blog platform. All endpoints require an API key in the `x-api-key` header except `/health`.
 
-[![API Documentation](https://img.shields.io/badge/API%20Documentation-View%20Here-blue?style=for-the-badge)](https://documenter.getpostman.com/view/1552895/2sBXVihVLg)
+[![API Documentation](https://img.shields.io/badge/API%20Documentation-View%20Here-blue?style=for-the-badge)](https://documenter.getpostman.com/view/1552895/2sA3XWdefu)
+
+### API Key
+API Key `1D3F2DD1A5DE725DD4DF1D82BBB37` is created as default by this project through mongo init scripts.
+
+If your database is empty, create an entry in the `api_keys` collection.
+
+See [API key setup](/api-keys) for more details.
 
 ## Base URL
 
@@ -11,969 +18,539 @@ http://localhost:8080
 ```
 
 ## At a glance
-- **Auth**: `/auth/signup|signin|refresh|signout` (API key; JWT on refresh/signout)
-- **Profile/User**: `/profile`, `/user` (API key; some routes JWT + role)
-- **Blog public**: `/blogs`, `/blog/id/:id` (API key)
-- **Author/editor**: `/blog/author`, `/blog/editor` (API key + JWT + role)
-- **Admin**: `/admin/*` (API key + JWT + ADMIN role)
 
-## Authentication
+- **Health**
+  - `/health`  
+  Public - no authentication — used for health checks
 
-All API requests require an API key:
+- **Authentication**
+  - `/auth/signup/basic`
+  - `/auth/signin/basic`
+  - `/auth/token/refresh`
+  - `/auth/signout`  
+  API key required - JWT required for refresh & signout
 
-```bash
-x-api-key: your-api-key-here
-```
+- **User / Profile**
+  - `/profile/id/:id`
+  - `/profile/mine`  
+  API key + JWT
 
-> No API key is seeded by default. Generate one following the steps in [Getting Started](/postgres/getting-started#1-create-an-api-key) or see [API key setup](/api-keys), then reuse that value in the examples below.
+- **Contact**
+  - `/contact`  
+  API key
+- **Blog – Author (write & workflow)**
+  - `/blog/author`
+  - `/blog/author/id/:id`
+  - `/blog/author/submit/:id`
+  - `/blog/author/withdraw/:id`
+  - `/blog/author/drafts`
+  - `/blog/author/submitted`
+  - `/blog/author/published`  
+  API key + JWT; author role required
+
+- **Blog – Editor (moderation & publishing)**
+  - `/blog/editor/id/:id`
+  - `/blog/editor/submitted`
+  - `/blog/editor/published`
+  - `/blog/editor/publish/id/:id`
+  - `/blog/editor/unpublish/id/:id`  
+  API key + JWT; editor role required
+
+- **Blog – Single content**
+  - `/blog/id/:id`
+  - `/blog/slug/:slug`  
+  API key
+
+- **Blogs – Public listings**
+  - `/blogs/latest`
+  - `/blogs/tag/:tag`
+  - `/blogs/similar/id/:id`  
+  API key; read-only access
+
+## Authentication model
+
+- **API Key (`x-api-key`)**
+  - Required for all endpoints except `/health`
+- **JWT (Bearer token)**
+  - Required for profile access, blog author/editor actions, token refresh, and signout
+- **Role-based access**
+  - Author routes require author role
+  - Editor routes require editor role
 
 ### Common errors
 | Code | Message (example) | When it happens | Fix |
 | --- | --- | --- | --- |
-| 401 | permission denied: missing x-api-key header | No `x-api-key` header present | Add `x-api-key: $API_KEY` |
-| 403 | permission denied: invalid x-api-key | Key not found/disabled | Create or use a valid key (see setup above) |
-| 422 | validation error: ... | Invalid or missing fields | Fix request body or query params |
-| 500 | something went wrong | Server-side error | Check logs; retry after investigating |
+| 401 | permission denied: missing x-api-key header | No `x-api-key` header | Add `x-api-key: $API_KEY` |
+| 403 | permission denied: invalid x-api-key | Key not found/disabled | Insert or use a valid key |
+| 422 | validation error: ... | Invalid request payload | Correct the request body |
+| 500 | something went wrong | Server-side error | Check service logs and retry |
 
-Protected endpoints additionally require JWT Bearer token:
+## Blog/Blogs API
 
-```bash
-Authorization: Bearer <access_token>
+### Get latest Blogs
+
+Get a list of latest blogs paginated.
+
+```http
+GET /blogs/latest?page=1&limit=10
 ```
 
----
-
-## Auth Controller
-
-**Base Path:** `/auth`
-
-### POST /auth/signup/basic
-
-Register a new user account.
-
-**Authentication:** API Key only  
-**Authorization:** None
-
-**Request Body:**
-
+**Response:**
 ```json
 {
-  "email": "user@example.com",
-  "password": "password123",
-  "name": "John Doe"
+  "code": "10000",
+  "status": 200,
+  "message": "success",
+  "data": [
+    {
+      "_id": "667846dffa51e5414d99f748",
+      "title": "Test Title 2",
+      "description": "Test Description 2",
+      "slug": "test-url-2",
+      "score": 0.01,
+      "tags": [
+        "GO",
+        "CLI"
+      ]
+    },
+    {
+      "_id": "66784670fa51e5414d99f747",
+      "title": "Test Title",
+      "description": "Test Description",
+      "slug": "test-url",
+      "imgUrl": "https://janisharali.com/assets/ali-cover.png",
+      "score": 0.01,
+      "tags": [
+        "GO",
+        "BACKEND"
+      ]
+    }
+  ]
 }
 ```
 
-**Response (200 OK):**
+### Get Blog by ID
 
+Get a specific blog by its MongoDB ObjectID.
+
+```http
+GET /blog/id/{id}
+```
+
+**Parameters:**
+- `id` (string, required) - MongoDB ObjectID of the sample
+
+**Response:**
 ```json
 {
-  "status": "success",
+  "code": "10000",
+  "status": 200,
+  "message": "success",
+  "data": {
+    "_id": "66784670fa51e5414d99f747",
+    "title": "Test Title",
+    "description": "Test Description",
+    "text": "<p>draft</p>",
+    "slug": "test-url",
+    "author": {
+      "_id": "6678463efa51e5414d99f745",
+      "name": "Janishar Ali"
+    },
+    "imgUrl": "https://janisharali.com/assets/ali-cover.png",
+    "score": 0.01,
+    "tags": [
+      "GO",
+      "BACKEND"
+    ],
+    "publishedAt": "2024-06-23T16:03:26.851Z"
+  }
+}
+```
+
+### Create Blog
+
+Create a new blog document.
+
+```http
+POST /blog/author
+```
+
+**Headers:**
+```
+Authorization: Bearer <jwt_token>
+x-api-key: your-api-key
+```
+
+**Request Body:**
+```json
+{
+	"title": "Test Title",
+	"description": "Test Description",
+	"draftText": "<p>draft</p>",
+	"slug": "test-url",
+	"imgUrl": "https://example/assets/image.png",
+	"tags": [
+			"GO",
+			"BACKEND"
+	]
+}
+```
+
+**Response:**
+```json
+{
+  "code": "10000",
+  "status": 200,
+  "message": "blog created successfully",
+  "data": {
+    "_id": "66784670fa51e5414d99f747",
+    "title": "Test Title",
+    "description": "Test Description",
+    "draftText": "<p>draft</p>",
+    "slug": "test-url",
+    "author": {
+      "_id": "6678463efa51e5414d99f745",
+      "name": "Janishar Ali"
+    },
+    "score": 0.01,
+    "tags": [
+      "GO",
+      "BACKEND"
+    ],
+    "submitted": false,
+    "drafted": true,
+    "published": false,
+    "createdAt": "2024-06-23T15:59:44.942Z",
+    "updatedAt": "2024-06-23T15:59:44.942Z"
+  }
+}
+```
+
+### Update Blog
+
+Update an existing blog document.
+
+```http
+PUT /blog/author/id/{id}
+```
+
+**Parameters:**
+- `id` (string, required) - MongoDB ObjectID of the blog
+**Headers:**
+```
+Authorization: Bearer <jwt_token>
+x-api-key: your-api-key
+```
+
+**Request Body:**
+```json
+{
+	"_id": "66784670fa51e5414d99f747",
+	"title": "Test Title",
+	"description": "Test Description",
+	"draftText": "<p>draft</p>",
+	"slug": "test-url-2",
+	"imgUrl": "https://janisharali.com/assets/ali-cover.png",
+	"tags": [
+			"GO",
+			"BACKEND"
+	]
+}
+```
+
+**Response:**
+```json
+{
+  "code": "10000",
+  "status": 200,
+  "message": "blog updated successfully",
+  "data": {
+    "_id": "66784670fa51e5414d99f747",
+    "title": "Test Title",
+    "description": "Test Description",
+    "draftText": "<p>draft</p>",
+    "slug": "test-url-2",
+    "author": {
+      "_id": "6678463efa51e5414d99f745",
+      "name": "Janishar Ali"
+    },
+    "imgUrl": "https://janisharali.com/assets/ali-cover.png",
+    "score": 0.01,
+    "tags": [
+      "GO",
+      "BACKEND"
+    ],
+    "submitted": false,
+    "drafted": true,
+    "published": false,
+    "createdAt": "2024-06-23T15:59:44.942Z",
+    "updatedAt": "2024-06-23T16:00:57.677Z"
+  }
+}
+```
+
+### Delete Blog
+
+Delete a blog document.
+
+```http
+DELETE /blog/author/id/{id}
+```
+
+**Parameters:**
+- `id` (string, required) - MongoDB ObjectID of the blog
+**Headers:**
+```
+Authorization: Bearer <jwt_token>
+x-api-key: your-api-key
+```
+
+**Response:**
+```json
+{
+  "code": "10000",
+  "status": 200,
+  "message": "blog deleted successfully"
+}
+```
+
+## Authentication API
+
+**Base Path:** `/auth`
+
+### Sign Up (Basic)
+
+Create a new user account with email and password.
+
+```http
+POST /auth/signup/basic
+```
+
+**Request Body:**
+```json
+{
+	"email": "ali@afteracademy.com",
+	"password": "123456",
+	"name": "Janishar Ali"
+}
+```
+
+**Response:**
+```json
+{
+  "code": "10000",
+  "status": 200,
   "message": "success",
   "data": {
     "user": {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "email": "user@example.com",
-      "name": "John Doe",
-      "profilePicUrl": null,
+      "_id": "66784450751bd4db00490891",
+      "email": "ali@afteracademy.com",
+      "name": "Janishar Ali",
       "roles": [
         {
-          "id": "660e8400-e29b-41d4-a716-446655440000",
+          "_id": "66784418b8c142336899ea79",
           "code": "LEARNER"
         }
       ]
     },
     "tokens": {
-      "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
-      "refreshToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+      "accessToken": "...",
+      "refreshToken": "..."
     }
   }
 }
 ```
 
-**Error Responses:**
+### Sign In (Basic)
 
-- **400 Bad Request:** Invalid email format, weak password, or missing fields
-- **409 Conflict:** Email already registered
+Authenticate with email and password.
 
----
-
-### POST /auth/signin/basic
-
-Sign in with email and password.
-
-**Authentication:** API Key only  
-**Authorization:** None
+```http
+POST /auth/signin/basic
+```
 
 **Request Body:**
-
 ```json
 {
-  "email": "user@example.com",
-  "password": "password123"
+	"email": "ali@afteracademy.com",
+	"password": "123456"
 }
 ```
 
-**Response (200 OK):**
-
+**Response:**
 ```json
 {
-  "status": "success",
+  "code": "10000",
+  "status": 200,
   "message": "success",
   "data": {
     "user": {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "email": "user@example.com",
-      "name": "John Doe",
-      "roles": [...]
+      "_id": "66784450751bd4db00490891",
+      "email": "ali@afteracademy.com",
+      "name": "Janishar Ali",
+      "roles": [
+        {
+          "_id": "66784418b8c142336899ea79",
+          "code": "LEARNER"
+        }
+      ]
     },
     "tokens": {
-      "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
-      "refreshToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+      "accessToken": "...",
+      "refreshToken": "..."
     }
   }
 }
 ```
 
-**Error Responses:**
+### Refresh Token
 
-- **401 Unauthorized:** Invalid credentials
-- **404 Not Found:** User not registered
+Get a new access token using refresh token.
 
----
-
-### POST /auth/token/refresh
-
-Refresh access token using refresh token.
-
-**Authentication:** API Key only  
-**Authorization:** None
+```http
+POST /auth/refresh
+```
 
 **Request Body:**
-
 ```json
 {
-  "refreshToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "refresh_token": "..."
 }
 ```
 
-**Headers:**
-
-```bash
-Authorization: Bearer <expired_access_token>
-```
-
-**Response (200 OK):**
-
+**Response:**
 ```json
 {
-  "status": "success",
+  "code": "10000",
+  "status": 200,
   "message": "success",
   "data": {
-    "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "refreshToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+    "accessToken": "...",
+    "refreshToken": "..."
   }
 }
 ```
 
-**Error Responses:**
+## User API
 
-- **401 Unauthorized:** Invalid or expired refresh token
-- **401 Unauthorized:** Token claims mismatch
+**Base Path:** `/profile`
 
----
+### Get Current User
 
-### DELETE /auth/signout
+Get information about the currently authenticated user.
 
-Sign out and invalidate current session.
+```http
+GET /profile/mine
+```
 
-**Authentication:** API Key + Bearer Token  
-**Authorization:** Authenticated user
-
-**Request Headers:**
-
-```bash
+**Headers:**
+```
 Authorization: Bearer <access_token>
 x-api-key: your-api-key
 ```
 
-**Response (200 OK):**
-
+**Response:**
 ```json
 {
-  "status": "success",
-  "message": "signout success"
-}
-```
-
----
-
-## User/Profile Controller
-
-**Base Path:** `/profile`
-
-### GET /profile/id/:id
-
-Get public profile information by user ID.
-
-**Authentication:** API Key only  
-**Authorization:** None
-
-**URL Parameters:**
-
-- `id` (UUID) - User ID
-
-**Example:**
-
-```bash
-GET /profile/id/550e8400-e29b-41d4-a716-446655440000
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "status": "success",
+  "code": "10000",
+  "status": 200,
   "message": "success",
   "data": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "name": "John Doe",
-    "profilePicUrl": "https://example.com/avatar.jpg"
-  }
-}
-```
-
-**Error Responses:**
-
-- **404 Not Found:** User does not exist
-
----
-
-### GET /profile/mine
-
-Get authenticated user's private profile.
-
-**Authentication:** API Key + Bearer Token  
-**Authorization:** Authenticated user
-
-**Response (200 OK):**
-
-```json
-{
-  "status": "success",
-  "message": "success",
-  "data": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "email": "user@example.com",
-    "name": "John Doe",
-    "profilePicUrl": "https://example.com/avatar.jpg",
+    "_id": "66784633949a981aad99ea7d",
+    "email": "admin@unusualcode.org",
+    "name": "Admin",
     "roles": [
       {
-        "id": "660e8400-e29b-41d4-a716-446655440000",
-        "code": "AUTHOR"
+        "_id": "66784633949a981aad99ea79",
+        "code": "LEARNER"
+      },
+      {
+        "_id": "66784633949a981aad99ea7a",
+        "code": "WRITER"
+      },
+      {
+        "_id": "66784633949a981aad99ea7b",
+        "code": "EDITOR"
+      },
+      {
+        "_id": "66784633949a981aad99ea7c",
+        "code": "ADMIN"
       }
     ]
   }
 }
 ```
 
----
+## Health Check
 
-## Blog Controller (Public)
+**Base Path:** `/`
 
-**Base Path:** `/blog`
+### Health Check
 
-### GET /blog/id/:id
+Check if the service is healthy.
 
-Get published blog by ID with caching.
-
-**Authentication:** API Key only  
-**Authorization:** None
-
-**URL Parameters:**
-
-- `id` (UUID) - Blog ID
-
-**Example:**
-
-```bash
-GET /blog/id/770e8400-e29b-41d4-a716-446655440000
+```http
+GET /health
 ```
 
-**Response (200 OK):**
-
+**Response:**
 ```json
 {
-  "status": "success",
+  "code": "10000",
+  "status": 200,
   "message": "success",
   "data": {
-    "id": "770e8400-e29b-41d4-a716-446655440000",
-    "title": "Getting Started with Go",
-    "description": "A comprehensive guide to Go programming",
-    "text": "Full blog content here...",
-    "slug": "getting-started-with-go",
-    "author": {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "name": "John Doe"
-    },
-    "imgUrl": "https://example.com/cover.jpg",
-    "score": 0.85,
-    "tags": ["GO", "PROGRAMMING"],
-    "publishedAt": "2024-01-15T10:30:00Z"
+    "timestamp": "2026-01-25T06:45:17.228713387Z",
+    "status": "OK"
   }
 }
 ```
-
-**Error Responses:**
-
-- **404 Not Found:** Blog does not exist or is not published
-
----
-
-### GET /blog/slug/:slug
-
-Get published blog by slug with caching.
-
-**Authentication:** API Key only  
-**Authorization:** None
-
-**URL Parameters:**
-
-- `slug` (string) - URL-friendly blog identifier
-
-**Example:**
-
-```bash
-GET /blog/slug/getting-started-with-go
-```
-
-**Response:** Same as GET /blog/id/:id
-
----
-
-## Blogs Controller (Listing)
-
-**Base Path:** `/blogs`
-
-### GET /blogs/latest
-
-Get paginated list of latest published blogs.
-
-**Authentication:** API Key only  
-**Authorization:** None
-
-**Query Parameters:**
-
-- `page` (number) - Page number (default: 1)
-- `limit` (number) - Items per page (default: 10, max: 100)
-
-**Example:**
-
-```bash
-GET /blogs/latest?page=1&limit=20
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "status": "success",
-  "message": "success",
-  "data": [
-    {
-      "id": "770e8400-e29b-41d4-a716-446655440000",
-      "title": "Getting Started with Go",
-      "description": "A comprehensive guide to Go programming",
-      "slug": "getting-started-with-go",
-      "imgUrl": "https://example.com/cover.jpg",
-      "publishedAt": "2024-01-15T10:30:00Z"
-    }
-  ]
-}
-```
-
----
-
-### GET /blogs/tag/:tag
-
-Get paginated list of blogs by tag.
-
-**Authentication:** API Key only  
-**Authorization:** None
-
-**URL Parameters:**
-
-- `tag` (string) - Tag name (e.g., "GO", "JAVASCRIPT")
-
-**Query Parameters:**
-
-- `page` (number) - Page number
-- `limit` (number) - Items per page
-
-**Example:**
-
-```bash
-GET /blogs/tag/GO?page=1&limit=10
-```
-
-**Response:** Same structure as /blogs/latest
-
----
-
-### GET /blogs/similar/id/:id
-
-Get similar blogs based on blog ID.
-
-**Authentication:** API Key only  
-**Authorization:** None
-
-**URL Parameters:**
-
-- `id` (UUID) - Reference blog ID
-
-**Example:**
-
-```bash
-GET /blogs/similar/id/770e8400-e29b-41d4-a716-446655440000
-```
-
-**Response:** Array of similar blogs with same structure as /blogs/latest
-
----
-
-## Blog Author Controller
-
-**Base Path:** `/blog/author`
-
-**Note:** All endpoints require `AUTHOR` role.
-
-### POST /blog/author/
-
-Create a new blog draft.
-
-**Authentication:** API Key + Bearer Token  
-**Authorization:** AUTHOR role
-
-**Request Body:**
-
-```json
-{
-  "title": "Getting Started with Go",
-  "description": "A comprehensive guide to Go programming",
-  "draftText": "Blog draft content here...",
-  "slug": "getting-started-with-go",
-  "tags": ["GO", "PROGRAMMING"],
-  "imgUrl": "https://example.com/cover.jpg"
-}
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "status": "success",
-  "message": "blog created successfully",
-  "data": {
-    "id": "770e8400-e29b-41d4-a716-446655440000",
-    "title": "Getting Started with Go",
-    "description": "A comprehensive guide to Go programming",
-    "text": null,
-    "draftText": "Blog draft content here...",
-    "slug": "getting-started-with-go",
-    "author": {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "name": "John Doe"
-    },
-    "imgUrl": "https://example.com/cover.jpg",
-    "score": 0,
-    "tags": ["GO", "PROGRAMMING"],
-    "submitted": false,
-    "drafted": true,
-    "published": false,
-    "status": true
-  }
-}
-```
-
-**Error Responses:**
-
-- **400 Bad Request:** Slug already exists
-- **400 Bad Request:** Validation errors
-
----
-
-### PUT /blog/author/
-
-Update an existing blog.
-
-**Authentication:** API Key + Bearer Token  
-**Authorization:** AUTHOR role (must be blog owner)
-
-**Request Body:**
-
-```json
-{
-  "id": "770e8400-e29b-41d4-a716-446655440000",
-  "title": "Updated Title",
-  "description": "Updated description",
-  "draftText": "Updated draft content...",
-  "slug": "updated-slug",
-  "tags": ["GO", "TUTORIAL"],
-  "imgUrl": "https://example.com/new-cover.jpg"
-}
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "status": "success",
-  "message": "blog updated successfully",
-  "data": {
-    // Updated blog object
-  }
-}
-```
-
-**Error Responses:**
-
-- **404 Not Found:** Blog does not exist or you don't own it
-- **400 Bad Request:** Slug already taken by another blog
-
----
-
-### GET /blog/author/id/:id
-
-Get blog by ID (author can see their own unpublished blogs).
-
-**Authentication:** API Key + Bearer Token  
-**Authorization:** AUTHOR role (must be blog owner)
-
-**URL Parameters:**
-
-- `id` (UUID) - Blog ID
-
-**Response (200 OK):**
-
-```json
-{
-  "status": "success",
-  "message": "success",
-  "data": {
-    // Full blog object including draft fields
-  }
-}
-```
-
-**Error Responses:**
-
-- **404 Not Found:** Blog not found or not owned by you
-
----
-
-### DELETE /blog/author/id/:id
-
-Deactivate (soft delete) a blog.
-
-**Authentication:** API Key + Bearer Token  
-**Authorization:** AUTHOR role (must be blog owner)
-
-**URL Parameters:**
-
-- `id` (UUID) - Blog ID
-
-**Response (200 OK):**
-
-```json
-{
-  "status": "success",
-  "message": "blog deleted successfully"
-}
-```
-
----
-
-### PUT /blog/author/submit/id/:id
-
-Submit blog for editor review.
-
-**Authentication:** API Key + Bearer Token  
-**Authorization:** AUTHOR role (must be blog owner)
-
-**URL Parameters:**
-
-- `id` (UUID) - Blog ID
-
-**Response (200 OK):**
-
-```json
-{
-  "status": "success",
-  "message": "blog submitted successfully"
-}
-```
-
----
-
-### PUT /blog/author/withdraw/id/:id
-
-Withdraw blog from editor review.
-
-**Authentication:** API Key + Bearer Token  
-**Authorization:** AUTHOR role (must be blog owner)
-
-**URL Parameters:**
-
-- `id` (UUID) - Blog ID
-
-**Response (200 OK):**
-
-```json
-{
-  "status": "success",
-  "message": "blog withdrawn successfully"
-}
-```
-
----
-
-### GET /blog/author/drafts
-
-Get paginated list of author's draft blogs.
-
-**Authentication:** API Key + Bearer Token  
-**Authorization:** AUTHOR role
-
-**Query Parameters:**
-
-- `page` (number) - Page number
-- `limit` (number) - Items per page
-
-**Example:**
-
-```bash
-GET /blog/author/drafts?page=1&limit=10
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "status": "success",
-  "message": "success",
-  "data": [
-    {
-      "id": "770e8400-e29b-41d4-a716-446655440000",
-      "title": "Draft Blog",
-      "description": "Draft description",
-      "slug": "draft-blog"
-    }
-  ]
-}
-```
-
----
-
-### GET /blog/author/submitted
-
-Get paginated list of author's submitted blogs (under review).
-
-**Authentication:** API Key + Bearer Token  
-**Authorization:** AUTHOR role
-
-**Query Parameters:**
-
-- `page` (number) - Page number
-- `limit` (number) - Items per page
-
-**Response:** Same structure as /blog/author/drafts
-
----
-
-### GET /blog/author/published
-
-Get paginated list of author's published blogs.
-
-**Authentication:** API Key + Bearer Token  
-**Authorization:** AUTHOR role
-
-**Query Parameters:**
-
-- `page` (number) - Page number
-- `limit` (number) - Items per page
-
-**Response:** Same structure as /blog/author/drafts
-
----
-
-## Blog Editor Controller
-
-**Base Path:** `/blog/editor`
-
-**Note:** All endpoints require `EDITOR` role.
-
-### GET /blog/editor/id/:id
-
-Get any blog by ID (editors can see all blogs).
-
-**Authentication:** API Key + Bearer Token  
-**Authorization:** EDITOR role
-
-**URL Parameters:**
-
-- `id` (UUID) - Blog ID
-
-**Response (200 OK):**
-
-```json
-{
-  "status": "success",
-  "message": "success",
-  "data": {
-    // Full blog object
-  }
-}
-```
-
-**Error Responses:**
-
-- **404 Not Found:** Blog does not exist
-
----
-
-### PUT /blog/editor/publish/id/:id
-
-Publish a blog (make it publicly visible).
-
-**Authentication:** API Key + Bearer Token  
-**Authorization:** EDITOR role
-
-**URL Parameters:**
-
-- `id` (UUID) - Blog ID
-
-**Response (200 OK):**
-
-```json
-{
-  "status": "success",
-  "message": "blog published successfully"
-}
-```
-
----
-
-### PUT /blog/editor/unpublish/id/:id
-
-Unpublish a blog (remove from public view).
-
-**Authentication:** API Key + Bearer Token  
-**Authorization:** EDITOR role
-
-**URL Parameters:**
-
-- `id` (UUID) - Blog ID
-
-**Response (200 OK):**
-
-```json
-{
-  "status": "success",
-  "message": "blog unpublished successfully"
-}
-```
-
----
-
-### GET /blog/editor/submitted
-
-Get paginated list of all submitted blogs awaiting review.
-
-**Authentication:** API Key + Bearer Token  
-**Authorization:** EDITOR role
-
-**Query Parameters:**
-
-- `page` (number) - Page number
-- `limit` (number) - Items per page
-
-**Example:**
-
-```bash
-GET /blog/editor/submitted?page=1&limit=20
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "status": "success",
-  "message": "success",
-  "data": [
-    {
-      "id": "770e8400-e29b-41d4-a716-446655440000",
-      "title": "Submitted Blog",
-      "description": "Awaiting review",
-      "slug": "submitted-blog"
-    }
-  ]
-}
-```
-
----
-
-### GET /blog/editor/published
-
-Get paginated list of all published blogs.
-
-**Authentication:** API Key + Bearer Token  
-**Authorization:** EDITOR role
-
-**Query Parameters:**
-
-- `page` (number) - Page number
-- `limit` (number) - Items per page
-
-**Response:** Same structure as /blog/editor/submitted
-
----
-
-## Contact Controller
-
-**Base Path:** `/contact`
-
-### POST /contact/
-
-Submit a contact message.
-
-**Authentication:** API Key only  
-**Authorization:** None
-
-**Request Body:**
-
-```json
-{
-  "name": "John Doe",
-  "email": "john@example.com",
-  "subject": "Question about API",
-  "message": "I have a question..."
-}
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "status": "success",
-  "message": "message received successfully!",
-  "data": {
-    "id": "880e8400-e29b-41d4-a716-446655440000",
-    "name": "John Doe",
-    "email": "john@example.com",
-    "subject": "Question about API",
-    "message": "I have a question..."
-  }
-}
-```
-
----
 
 ## Error Responses
 
-All endpoints may return the following error responses:
-
-### 400 Bad Request
+All API errors follow a consistent format:
 
 ```json
 {
-  "status": "error",
-  "message": "Invalid request parameters",
-  "details": "email must be a valid email address"
+  "code": "10001",
+  "status": 400,
+  "message": "Validation failed"
 }
 ```
 
-### 401 Unauthorized
+### Common HTTP Status Codes
 
-```json
-{
-  "status": "error",
-  "message": "permission denied",
-  "details": "missing Authorization header"
-}
-```
+- `200` - Success
+- `400` - Bad Request (validation errors)
+- `401` - Unauthorized (missing/invalid authentication)
+- `403` - Forbidden (insufficient permissions)
+- `404` - Not Found (resource doesn't exist)
+- `500` - Internal Server Error (server error)
 
-### 403 Forbidden
+## Data Types
 
-```json
-{
-  "status": "error",
-  "message": "insufficient permissions",
-  "details": "EDITOR role required"
-}
-```
+### MongoDB ObjectID
 
-### 404 Not Found
+All document IDs are MongoDB ObjectIDs, represented as 24-character hexadecimal strings.
 
-```json
-{
-  "status": "error",
-  "message": "resource not found",
-  "details": "blog not found"
-}
-```
+**Example:** `507f1f77bcf86cd799439011`
 
-### 500 Internal Server Error
+### Timestamps
 
-```json
-{
-  "status": "error",
-  "message": "something went wrong",
-  "details": "internal server error"
-}
-```
+All timestamps are in ISO 8601 format with UTC timezone.
 
----
+**Example:** `2024-01-15T10:30:00Z`
 
-## Rate Limiting
+### User Roles
 
-Currently, no rate limiting is implemented. Consider implementing rate limiting in production.
+Users can have the following roles:
 
-## Pagination
+- `LEARNER` - Basic user permissions
+- `AUTHOR` - Can create and manage own content
+- `EDITOR` - Can edit and publish content
+- `ADMIN` - Full system access
 
-All paginated endpoints accept:
+## Next
 
-- `page`: Page number (starting from 1)
-- `limit`: Items per page (default: 10, max: 100)
-
-Pagination response format:
-
-```json
-{
-  "status": "success",
-  "message": "success",
-  "data": [
-    // Array of items
-  ]
-}
-```
-
-## Caching
-
-The following endpoints utilize Redis caching:
-
-- `GET /blog/id/:id` - Cached by blog ID
-- `GET /blog/slug/:slug` - Cached by slug
-- `GET /blogs/similar/id/:id` - Cached similar blogs
-
-Cache TTL varies by endpoint. See [Core Concepts - Caching](/core-concepts#caching-strategy) for details.
-
-## Testing Endpoints
-
-Use the provided examples in [Getting Started](/getting-started) to test endpoints with cURL or Postman.
-
-## Related
-
-- [Getting Started](/getting-started) - Quick start with cURL examples
-- [Core Concepts](/core-concepts) - Understand the architecture
-- [Authentication](/core-concepts#authentication-jwt-with-rsa) - JWT implementation details
-- [Authorization](/core-concepts#authorization-rbac) - Role-based access control
+- Try the [goserve Postgres Example](/postgres)
+- Explore [goserve Microservice Example](/micro)

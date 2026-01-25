@@ -1,6 +1,17 @@
 # Getting Started
 
-Get up and running with the goserve example API server in minutes.
+Get up and running with the goserve PostgreSQL example API server. 
+
+**The project includes the following dependencies (automatically managed):**
+
+- **goserve** - Go backend framework
+- **Gin** - HTTP web framework
+- **PostgreSQL Driver** - pgx driver for PostgreSQL
+- **go-redis** - Redis client
+- **JWT** - JSON Web Tokens for authentication
+- **Validator** - Request validation
+- **Viper** - Configuration management
+- **Crypto** - Cryptographic utilities
 
 ## Prerequisites
 
@@ -14,7 +25,7 @@ Before you begin, ensure you have the following installed:
 
 ### Optional (for local development without Docker)
 
-- **PostgreSQL 14+** - [Download](https://www.postgresql.org/download/)
+- **PostgreSQL 15+** - [Download](https://www.postgresql.org/download/)
 - **Redis 6+** - [Download](https://redis.io/download)
 
 ### Verify Installation
@@ -34,29 +45,17 @@ git --version
 
 ## Quick Start
 
-Shortest path to a live API (copy/paste):
+Fastest way to run and ping the API:
 
 ```bash
 git clone https://github.com/afteracademy/goserve-example-api-server-postgres.git
 cd goserve-example-api-server-postgres
 go run .tools/rsa/keygen.go && go run .tools/copy/envs.go
 docker compose up --build -d
-# create an API key for local use (replace the value if you prefer)
-export API_KEY=dev-$(openssl rand -hex 6)
-docker compose exec postgres \
-  psql -U goserver_dev_db_user -d goserver_dev_db \
-  -c "INSERT INTO api_keys (key, permissions, comments, version) VALUES ('$API_KEY', '{\"GENERAL\"}', '{\"local dev\"}', 1);"
-curl -H "x-api-key: $API_KEY" http://localhost:8080/health
+curl -H http://localhost:8080/health
 ```
 
-Need more options? See [API key setup](/api-keys).
-
-### Fast checks (recommended)
-- Tests: `docker exec -t goserver-postgres go test -v ./...` (or `go test -v ./...` locally)
-- Health: `curl -H http://localhost:8080/health`
-- Seed reminder: ensure at least one API key exists before calling auth/blog routes.
-
-If you prefer step-by-step, read on.
+If you need the details, continue below.
 
 ### 1. Clone the Repository
 
@@ -100,194 +99,264 @@ The API will be available at: `http://localhost:8080`
 Check the health of your API:
 
 ```bash
-curl -H "x-api-key: $API_KEY" http://localhost:8080/health
+curl http://localhost:8080/health
 ```
 
 ## Your First API Request
 
-### 1. Create an API Key
+### 1. Get an API Key
 
-Fresh databases do **not** include a seeded API key. Create one before making requests:
+Set an API key in your environment, then reuse it:
 
 ```bash
-export API_KEY=dev-$(openssl rand -hex 6)
-
-# If using Docker Compose (default credentials from .env.example)
-docker compose exec postgres \
-  psql -U goserver_dev_db_user -d goserver_dev_db \
-  -c "INSERT INTO api_keys (key, permissions, comments, version) VALUES ('$API_KEY', '{\"GENERAL\"}', '{\"docs\"}', 1);"
-
-# If connecting directly with psql
-# psql -h localhost -p 5432 -U goserver_dev_db_user -d goserver_dev_db \
-#   -c "INSERT INTO api_keys (key, permissions, comments, version) VALUES ('$API_KEY', '{\"GENERAL\"}', '{\"docs\"}', 1);"
+export API_KEY=your-api-key
 ```
 
-### 2. Create a User Account
+Note: API_KEY `1D3F2DD1A5DE725DD4DF1D82BBB37` is created as default by this project through postgres seed sql scripts.
+
+If your database is empty, create an entry in the `api_keys` table.
+
+See [API key setup](/api-keys) for more details.
+
+### 2. Sign Up
 
 ```bash
-curl -X POST http://localhost:8080/auth/signup/basic \
-  -H "x-api-key: $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "John Doe",
-    "email": "john@example.com",
-    "password": "SecurePass123!",
-    "roleCode": "AUTHOR"
-  }'
+curl --location 'http://localhost:8000/auth/signup/basic' \
+--header 'x-api-key: 1D3F2DD1A5DE725DD4DF1D82BBB37' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "email": "ali@afteracademy.com",
+    "password": "123456",
+    "name": "Janishar Ali"
+}'
 ```
 
 Response:
+
 ```json
 {
-  "status": "success",
+  "code": "10000",
+  "status": 200,
   "message": "success",
   "data": {
     "user": {
-      "id": "uuid-here",
-      "email": "john@example.com",
-      "name": "John Doe",
-      "roles": [{"code": "AUTHOR"}]
+      "id": "df7b4663-c595-4f0b-ba9d-6ac3d3dfe244",
+      "email": "ali@afteracademy.com",
+      "name": "Janishar Ali",
+      "roles": [
+        {
+          "id": "17c8077b-d5c2-42d8-a42b-9a0469c54209",
+          "code": "LEARNER"
+        }
+      ]
     },
     "tokens": {
-      "accessToken": "eyJhbGc...",
-      "refreshToken": "eyJhbGc..."
+      "accessToken": "...",
+      "refreshToken": "..."
     }
   }
 }
 ```
 
-### 3. Sign In
+### 2. Sign In
 
 ```bash
-curl -X POST http://localhost:8080/auth/signin/basic \
-  -H "x-api-key: $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "john@example.com",
-    "password": "SecurePass123!"
-  }'
+curl --location 'http://localhost:8000/auth/signin/basic' \
+--header 'x-api-key: 1D3F2DD1A5DE725DD4DF1D82BBB37' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "email": "ali@afteracademy.com",
+    "password": "123456"
+}'
+```
+### You must provide Roles to this user in the database to access protected routes.
+You can use the default admin user seeded in the database:
+```bash
+curl --location 'http://localhost:8000/auth/signin/basic' \
+--header 'x-api-key: 1D3F2DD1A5DE725DD4DF1D82BBB37' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "email": "admin@afteracademy.com",
+    "password": "changeit"
+}'
+```
+Resonpse
+```json
+{
+    "code": "10000",
+    "status": 200,
+    "message": "success",
+    "data": {
+        "user": {
+            "_id": "df7b4663-c595-4f0b-ba9d-6ac3d3dfe244",
+            "email": "admin@afteracademy.com",
+            "name": "Admin",
+            "roles": [
+                {
+                    "_id": "df7b4663-c595-4f0b-ba9d-6ac3d3dfe244",
+                    "code": "LEARNER"
+                },
+                {
+                    "_id": "df7b4663-c595-4f0b-ba9d-6ac3d3dfe244",
+                    "code": "AUTHOR"
+                },
+                {
+                    "_id": "df7b4663-c595-4f0b-ba9d-6ac3d3dfe244",
+                    "code": "EDITOR"
+                },
+                {
+                    "_id": "df7b4663-c595-4f0b-ba9d-6ac3d3dfe244",
+                    "code": "ADMIN"
+                }
+            ]
+        },
+        "tokens": {
+            "accessToken": "...",
+            "refreshToken": "..."
+        }
+    }
+}
 ```
 
-### 4. Create a Blog Post
+## Roles
+You must assign appropriate roles to users in the database to access protected routes. You can do this by directly updating the `users` table in PostgresSQL Database. You will find the roles defined in the `api/user/model/role.go` table.
 
-Use the `accessToken` from signup/signin:
+```go
+const RolesTableName = "roles"
 
-```bash
-curl -X POST http://localhost:8080/blog/author \
-  -H "x-api-key: $API_KEY" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "My First Blog Post",
-    "description": "This is an example blog post",
-    "draftText": "Full content of the blog post goes here...",
-    "slug": "my-first-blog-post",
-    "imgUrl": "https://example.com/image.jpg",
-    "tags": ["TECH", "GOLANG"]
-  }'
+type RoleCode string
+
+const (
+	RoleCodeLearner RoleCode = "LEARNER"
+	RoleCodeAdmin   RoleCode = "ADMIN"
+	RoleCodeAuthor  RoleCode = "AUTHOR"
+	RoleCodeEditor  RoleCode = "EDITOR"
+)
+
+type Role struct {
+	ID        uuid.UUID
+	Code      RoleCode
+	Status    bool
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
 ```
 
-## Running Tests
+## Architecture Overview
 
-Execute the test suite:
+This example demonstrates goserve's architecture with Postgres:
+
+### Key Components
+
+- **Postgres**: Relational database for structured data storage
+- **Redis**: High-performance caching layer
+- **JWT Authentication**: RSA-signed tokens for secure authentication
+- **API Key Protection**: Infrastructure-level security
+- **Feature-Based Structure**: Organized by business domains
+
+### Directory Structure
+
+```
+goserve-example-api-server-postgres/
+├── api/                   # API feature modules
+│   └── sample/            # Sample feature
+│       ├── dto/           # Data Transfer Objects
+│       ├── model/         # Postgres document models
+│       ├── controller.go  # HTTP handlers
+│       └── service.go     # Business logic
+├── cmd/                   # Application entry point
+│   └── main.go            # Main function
+├── common/                # Shared utilities
+├── config/                # Configuration
+├── startup/               # Server initialization
+│   ├── server.go          # Server setup
+│   ├── module.go          # Dependency injection
+│   └── indexes.go         # Database indexes
+├── tests/                 # Integration tests
+├── .tools/                # Code generation tools
+└── keys/                  # RSA keys for JWT
+```
+
+## Development Workflow
+
+### Fast checks (recommended)
+- Tests: `docker exec -t goserver-postgres go test -v ./...`
+- Health: `curl http://localhost:8080/health`
+- Seed reminder: ensure at least one API key exists before hitting protected routes.
+
+### Running Tests
 
 ```bash
-# If using Docker
-docker exec -t goserve_example_api_server_postgres go test -v ./...
+# Run all tests
+docker exec -t goserver-postgres go test -v ./...
 
-# If running locally
-go test -v ./...
+# Run specific test
+docker exec -t goserver-postgres go test -v ./tests/
+```
+
+### Code Generation
+
+Generate new API features:
+
+```bash
+go run .tools/apigen.go your-feature-name
+```
+
+This creates the complete directory structure and skeleton files for a new feature.
+
+## Local Development
+
+For local development without Docker:
+
+1. Install dependencies:
+	```bash
+	go mod tidy
+	```
+2. Start Postgres and Redis locally (or via Docker).
+3. Update `.env` and `.test.env`:
+   ```
+   DB_HOST=localhost
+   REDIS_HOST=localhost
+   ```
+4. Run the application:
+   ```bash
+   go run cmd/main.go
+   ```
+If ports are already in use:
+
+```bash
+# Check what's using the ports
+lsof -i :8080
+lsof -i :27017
+lsof -i :6379
+
+# Update .env file with different ports
+SERVER_PORT=8081
+DB_PORT=27018
+REDIS_PORT=6380
+```
+
+### Postgres Connection Issues
+
+```bash
+# Check Postgres status
+docker ps | grep postgres
+
+# Connect to Postgres
+docker exec -it <postgres_container> postgres
+
+# Verify connection
+go run cmd/main.go
+```
+
+### Permission Issues
+
+```bash
+# Fix file permissions
+chmod +x .tools/rsa/keygen.go
+chmod +x .tools/copy/envs.go
 ```
 
 ## Observability
 - Health endpoint: `GET /health` on port 8080
 - Logs: `docker compose logs -f api` or the local process output
-
-## Development Workflow
-
-### Using Docker (Recommended)
-
-1. Make code changes
-2. Restart the container:
-   ```bash
-   docker compose restart api
-   ```
-
-### Running Locally
-
-1. Keep PostgreSQL and Redis containers running:
-   ```bash
-   docker compose up postgres redis
-   ```
-
-2. Update `.env` file:
-   ```bash
-   DB_HOST=localhost
-   REDIS_HOST=localhost
-   ```
-
-3. Run the application:
-   ```bash
-   go run cmd/main.go
-   ```
-
-### Using VS Code
-
-The project includes VS Code debug configurations. Press `F5` to start debugging.
-
-## Common Issues
-
-### Port Already in Use
-
-If port 8080, 5432, or 6379 is occupied:
-
-```bash
-# Change in .env file
-SERVER_PORT=8081
-DB_PORT=5433
-REDIS_PORT=6380
-```
-
-### Docker Permission Denied
-
-On Linux, add your user to the docker group:
-
-```bash
-sudo usermod -aG docker $USER
-newgrp docker
-```
-
-### RSA Key Errors
-
-Regenerate keys if you see JWT signing errors:
-
-```bash
-rm keys/private.pem keys/public.pem
-go run .tools/rsa/keygen.go
-```
-
-## Project Structure Overview
-
-```
-goserve-example-api-server-postgres/
-├── api/              # API features (auth, blog, user, etc.)
-├── cmd/              # Application entry point
-├── common/           # Shared utilities
-├── config/           # Configuration management
-├── startup/          # Server initialization
-├── tests/            # Integration tests
-├── .tools/           # Code generators
-└── docker-compose.yml
-```
-
-## Next Steps
-
-- **Understand the Architecture**: Read [Project Architecture](/postgres/architecture)
-- **Learn Core Concepts**: Explore [Core Concepts](/postgres/core-concepts)
-- **View API Reference**: Check out the [API Reference](/postgres/api-reference)
-- **Configure Your Setup**: Review [Configuration](/postgres/configuration)
-
-## Need Help?
-
-- 💬 Ask questions on [GitHub Discussions](https://github.com/afteracademy/goserve-example-api-server-postgres/discussions)
-- 🐛 Report bugs via [GitHub Issues](https://github.com/afteracademy/goserve-example-api-server-postgres/issues)
