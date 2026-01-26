@@ -1,12 +1,12 @@
 import { defineConfig } from "vitepress";
 
 export default defineConfig({
-	srcDir: '.',
-  srcExclude: ['README.md'],
+  srcDir: ".",
+  srcExclude: ["README.md"],
   base: "/",
-  title: "goserve docs",
+  title: "Official documentation for goserve",
   description:
-    "A robust Go backend architecture framework emphasizing feature separation, clean code, and testability",
+    "Official documentation for goserve - Production-ready Go framework for building REST APIs with PostgreSQL, MongoDB, microservices, JWT authentication, Redis caching, and clean architecture. Complete guides, examples, and tutorials.",
 
   themeConfig: {
     logo: "/images/logo.webp",
@@ -117,12 +117,109 @@ export default defineConfig({
   },
 
   head: [
-    ['meta', { name: 'description', content: 'goserve - Production-ready Go backend framework with PostgreSQL, MongoDB, and microservices examples. Build scalable REST APIs with clean architecture.' }],
-    ['meta', { property: 'og:title', content: 'goserve Documentation' }],
-    ['meta', { property: 'og:description', content: 'Complete guide to building Go REST APIs with goserve framework - JWT auth, Redis caching, role-based access control' }],
-    ['meta', { property: 'og:type', content: 'website' }],
-    ['meta', { name: 'keywords', content: 'go, golang, rest api, backend framework, postgresql, mongodb, microservices, jwt, redis, docker' }],
-    ['link', { rel: 'icon', type: 'image/webp', href: '/images/logo.webp' }],
+    // Primary Meta Tags
+    [
+      "meta",
+      {
+        name: "description",
+        content:
+          "Official documentation for goserve - Production-ready Go framework for building REST APIs with PostgreSQL, MongoDB, microservices, JWT authentication, Redis caching, and clean architecture. Complete guides, examples, and tutorials.",
+      },
+    ],
+    [
+      "meta",
+      {
+        name: "keywords",
+        content:
+          "go, golang, rest api, backend framework, postgresql, mongodb, microservices, jwt authentication, redis, docker, gin, clean architecture, rbac, api documentation, go framework, backend development",
+      },
+    ],
+    ["meta", { name: "author", content: "AfterAcademy" }],
+
+    // Open Graph / Facebook
+    ["meta", { property: "og:type", content: "website" }],
+    [
+      "meta",
+      { property: "og:url", content: "https://goserve.afteracademy.com" },
+    ],
+    ["meta", { property: "og:site_name", content: "goserve Documentation" }],
+    [
+      "meta",
+      {
+        property: "og:title",
+        content: "goserve - Production-Ready Go REST API Framework",
+      },
+    ],
+    [
+      "meta",
+      {
+        property: "og:description",
+        content:
+          "Build scalable REST APIs with Go. Complete framework with PostgreSQL, MongoDB, microservices, JWT auth, Redis caching, and comprehensive examples. Start building production-ready APIs today.",
+      },
+    ],
+    [
+      "meta",
+      {
+        property: "og:image",
+        content: "https://goserve.afteracademy.com/images/goserve-banner.png",
+      },
+    ],
+    ["meta", { property: "og:image:width", content: "1200" }],
+    ["meta", { property: "og:image:height", content: "630" }],
+    [
+      "meta",
+      { property: "og:image:alt", content: "goserve - Go REST API Framework" },
+    ],
+    ["meta", { property: "og:locale", content: "en_US" }],
+
+    // Twitter Card
+    ["meta", { name: "twitter:card", content: "summary_large_image" }],
+    [
+      "meta",
+      { name: "twitter:url", content: "https://goserve.afteracademy.com" },
+    ],
+    ["meta", { name: "twitter:site", content: "@afteracad" }],
+    ["meta", { name: "twitter:creator", content: "@afteracad" }],
+    [
+      "meta",
+      {
+        name: "twitter:title",
+        content: "goserve - Production-Ready Go REST API Framework",
+      },
+    ],
+    [
+      "meta",
+      {
+        name: "twitter:description",
+        content:
+          "Build scalable REST APIs with Go 🚀 PostgreSQL, MongoDB & microservices support. JWT auth, Redis caching, clean architecture. Complete guides & examples included.",
+      },
+    ],
+    [
+      "meta",
+      {
+        name: "twitter:image",
+        content: "https://goserve.afteracademy.com/images/goserve-banner.png",
+      },
+    ],
+    [
+      "meta",
+      {
+        name: "twitter:image:alt",
+        content: "goserve Framework - Build Go REST APIs with ease",
+      },
+    ],
+
+    // Additional Meta Tags
+    ["meta", { name: "robots", content: "index, follow" }],
+    ["meta", { name: "language", content: "English" }],
+    ["meta", { name: "revisit-after", content: "7 days" }],
+    ["meta", { name: "theme-color", content: "#00ADD8" }],
+
+    // Canonical Link
+    ["link", { rel: "canonical", href: "https://goserve.afteracademy.com" }],
+    ["link", { rel: "icon", type: "image/webp", href: "/images/logo.webp" }],
   ],
 
   markdown: {
