@@ -1,6 +1,8 @@
 import { defineConfig } from "vitepress";
 
 export default defineConfig({
+	srcDir: '.',
+  srcExclude: ['README.md'],
   base: "/",
   title: "goserve docs",
   description:
