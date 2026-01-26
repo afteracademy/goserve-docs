@@ -1,6 +1,6 @@
 # Getting Started with gomicro
 
-Get up and running with the goserve microservices architecture in minutes.
+Get up and running with the goserve microservices architecture.
 
 ## Prerequisites
 
@@ -27,8 +27,8 @@ git clone https://github.com/afteracademy/gomicro.git
 cd gomicro
 go run .tools/rsa/keygen.go && go run .tools/copy/envs.go
 docker compose up --build -d
-export API_KEY=your-api-key
-curl -H "x-api-key: $API_KEY" http://localhost:8000/health
+curl http://localhost:8000/auth/health
+curl http://localhost:8000/blog/health
 ```
 
 For multiple instances, use the load-balanced compose file below.
@@ -84,9 +84,18 @@ Check that all services are running:
 
 ```bash
 # Health check
-curl -H "x-api-key: $API_KEY" http://localhost:8000/health
+curl http://localhost:8000/auth/health
+curl http://localhost:8000/blog/health
+```
 
-# Should return: {"status": "ok"}
+If successful, you should see:
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "version": "1.0.0"
+}
 ```
 
 ## Service Architecture
@@ -94,8 +103,8 @@ curl -H "x-api-key: $API_KEY" http://localhost:8000/health
 gomicro runs multiple services:
 
 - **Kong API Gateway**: `http://localhost:8000`
-- **Auth Service**: `http://localhost:8001` (internal)
-- **Blog Service**: `http://localhost:8002` (internal)
+- **Auth Service**: `http://localhost:8000` (internal)
+- **Blog Service**: `http://localhost:8000` (internal)
 - **PostgreSQL**: `localhost:5432`
 - **MongoDB**: `localhost:27017`
 - **Redis**: `localhost:6379`
@@ -110,26 +119,53 @@ The system uses API keys for initial access. Ensure the auth service stores the 
 ### 2. Create a User Account
 
 ```bash
-curl -X POST http://localhost:8000/auth/signup/basic \
-  -H "x-api-key: your-api-key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "John Doe",
-    "email": "john@example.com",
-    "password": "securepassword123"
-  }'
+curl --location 'http://localhost:8000/auth/signup/basic' \
+--header 'x-api-key: 1D3F2DD1A5DE725DD4DF1D82BBB37' \
+--header "Content-Type: application/json" \
+--data-raw '{
+    "email": "ali@afteracademy.com",
+    "password": "123456",
+    "name": "Janishar Ali"
+}'
+```
+
+Response:
+
+```json
+{
+  "code": "10000",
+  "status": 200,
+  "message": "success",
+  "data": {
+    "user": {
+      "id": "84c108ce-5f92-494e-97a1-7ad5af0c0877",
+      "email": "ali@afteracademy.com",
+      "name": "Janishar Ali",
+      "roles": [
+        {
+          "id": "d2e51682-e918-492f-8b76-9895dd42b8ae",
+          "code": "LEARNER"
+        }
+      ]
+    },
+    "tokens": {
+      "accessToken": "...",
+      "refreshToken": "..."
+    }
+  }
+}
 ```
 
 ### 3. Sign In
 
 ```bash
-curl -X POST http://localhost:8000/auth/signin/basic \
-  -H "x-api-key: your-api-key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "john@example.com",
-    "password": "securepassword123"
-  }'
+curl --location 'http://localhost:8000/auth/signin/basic' \
+--header 'x-api-key: •••••••' \
+--header "Content-Type: application/json" \
+--data-raw '{
+    "email": "admin@afteracademy.com",
+    "password": "changeit"
+}'
 ```
 
 Save the returned `access_token`.
@@ -137,18 +173,21 @@ Save the returned `access_token`.
 ### 4. Create a Blog Post
 
 ```bash
-curl -X POST http://localhost:8000/blog/author \
-  -H "x-api-key: your-api-key" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "My First Blog",
-    "description": "A great blog post",
-    "draftText": "Full blog content here...",
-    "slug": "my-first-blog",
-    "imgUrl": "https://example.com/image.jpg",
-    "tags": ["TECH", "GOLANG"]
-  }'
+curl --location 'http://localhost:8000/blog/author' \
+--header 'x-api-key: •••••••' \
+--header "Content-Type: application/json" \
+--header "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+--data '{
+    "title": "Test Title",
+    "description": "Test Description",
+    "draftText": "<p>draft</p>",
+    "slug": "test-url",
+    "imgUrl": "https://example/assets/image.png",
+    "tags": [
+        "GO",
+        "BACKEND"
+    ]
+}'
 ```
 
 ## Understanding the Flow
@@ -162,12 +201,12 @@ Kong API Gateway (Port 8000)
     ↓ Custom API Key Plugin
     ↓ Validates API key via auth-service
     ↓ Routes to appropriate service
-┌─────────────────┐    NATS Messaging    ┌─────────────────┐
+┌─────────────────┐    NATS Messaging  ┌─────────────────┐
 │  auth-service   │◄──────────────────►│  blog-service   │
-│   (Port 8001)   │                     │   (Port 8002)   │
-└─────────────────┘                     └─────────────────┘
-        ↓                                       ↓
-   PostgreSQL + Redis                    MongoDB + Redis
+│   (Port 8000)   │                    │   (Port 8000)   │
+└─────────────────┘                    └─────────────────┘
+        ↓                                      ↓
+PostgreSQL + Redis                       MongoDB + Redis
 ```
 
 ### Authentication Flow
@@ -187,7 +226,9 @@ docker exec -t gomicro_blog-service_1 go test -v ./...
 ```
 
 ### Fast checks (recommended)
-- Health: `curl -H "x-api-key: $API_KEY" http://localhost:8000/health`
+
+- Health Auth: `curl http://localhost:8000/auth/health`
+- Health Blog: `curl http://localhost:8000/blog/health`
 - Kong plugin: verify `apikey-auth` plugin is enabled and points to auth-service
 - Seed reminder: ensure the auth service holds the API key Kong expects.
 
@@ -207,10 +248,7 @@ For local development without Docker:
 1. Start PostgreSQL, MongoDB, Redis, and NATS locally
 2. Update `.env` files to point to `localhost` instead of service names
 
-## Observability
-- Gateway health: `GET /health` on port 8000 (via Kong)
-- Logs: `docker compose logs -f kong auth-service blog-service`
-3. Run services individually:
+3. Run services individually by changing the port in `.env` files to avoid conflicts:
 
 ```bash
 # Terminal 1: Auth service
@@ -302,9 +340,3 @@ Modify `kong/kong.yml` for custom routing rules and plugins.
 ### Service Discovery
 
 Services register with NATS for automatic discovery.
-
-## Next Steps
-
-- [Architecture Details](/micro/architecture) - Deep dive into microservices design
-- [Configuration Guide](/micro/configuration) - Environment setup and options
-- [API Reference](/micro/api-reference) - Complete endpoint documentation

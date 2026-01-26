@@ -6,42 +6,36 @@ layout: doc
 
 **Complete Microservices Implementation with Kong API Gateway**
 
-![Gomicro banner](/images/gomicro-banner.png)
-
-Build distributed systems with Kong, NATS messaging, MongoDB, Redis, JWT authentication, and service discovery.
-
-## Quick Links
-
-<div class="vp-doc">
-
-- [🚀 Get Started](/micro/getting-started) - Set up your microservices environment
-- [🏗️ Architecture](/micro/architecture) - Understand the microservices design
-- [⚙️ Configuration](/micro/configuration) - Configure services and Kong
-- [📚 API Reference](/micro/api-reference) - Complete API documentation
-
-</div>
+Build distributed systems with Kong, NATS messaging, PostgreSQL, MongoDB, Redis, JWT authentication, and service discovery.
 
 ## Key Features
 
 ### 🏗️ Complete Microservices Architecture
+
 Two independent services (auth & blog) communicating via NATS messaging, orchestrated with Docker Compose.
 
 ### 🌐 Kong API Gateway
+
 Centralized API gateway with custom Go plugin for API key authentication and request routing.
 
 ### 📨 NATS Messaging
+
 Inter-service communication using NATS for event-driven architecture and synchronous service calls.
 
 ### 🔐 Distributed Authentication
+
 Auth service handles JWT token validation and role-based authorization across services.
 
 ### 🗄️ Multi-Database Architecture
+
 Auth service uses PostgreSQL, blog service uses MongoDB, both with Redis caching.
 
 ### 🐳 Docker Orchestration
+
 Complete containerized environment with load balancing options and service discovery.
 
 ### 📊 Two Deployment Modes
+
 - **Standard Mode**: Single instance of each service
 - **Load Balanced Mode**: Multiple instances with load balancing
 
@@ -53,11 +47,11 @@ Internet
 Kong API Gateway (Port 8000)
     ↓ Custom API Key Plugin
     ↓ Routes to services
-┌─────────────────┐    NATS Messaging    ┌─────────────────┐
+┌─────────────────┐    NATS Messaging  ┌─────────────────┐
 │  auth-service   │◄──────────────────►│  blog-service   │
-│   (PostgreSQL)  │                     │    (MongoDB)    │
-│    Port: 8001   │                     │   Port: 8002    │
-└─────────────────┘                     └─────────────────┘
+│   (PostgreSQL)  │                    │    (MongoDB)    │
+│    Port: 8000   │                    │   Port: 8000    │
+└─────────────────┘                    └─────────────────┘
         ↓                                       ↓
    PostgreSQL + Redis                    MongoDB + Redis
 ```
@@ -65,12 +59,14 @@ Kong API Gateway (Port 8000)
 ## Services Overview
 
 ### Auth Service
+
 - **Database**: PostgreSQL with users and roles
 - **Purpose**: JWT authentication and role-based authorization
 - **Communication**: Receives validation requests via NATS
 - **Endpoints**: Token verification, user management, role checking
 
 ### Blog Service
+
 - **Database**: MongoDB for flexible blog document storage
 - **Purpose**: Blog CRUD operations with author/editor workflows
 - **Communication**: Requests auth validation via NATS
@@ -140,7 +136,8 @@ go run .tools/copy/envs.go
 docker compose up --build
 
 # Access the API
-curl http://localhost:8000/health
+curl http://localhost:8000/auth/health
+curl http://localhost:8000/blog/health
 ```
 
 ## Community
@@ -149,22 +146,3 @@ curl http://localhost:8000/health
 - [goserve Framework](https://github.com/afteracademy/goserve)
 - [YouTube Channel](https://www.youtube.com/@afteracad)
 - [Article: Microservices Guide](https://afteracademy.com/article/how-to-create-microservices-a-practical-guide-using-go)
-
----
-
-## Related Topics
-
-**Explore More Examples:**
-- [PostgreSQL Example →](/postgres/) - Relational database architecture
-- [MongoDB Example →](/mongo/) - Document database architecture
-- [Compare Architectures →](/compare) - Choose the right approach
-
-**Microservices Deep Dive:**
-- [Architecture Guide →](/micro/architecture) - System design and load balancing
-- [Configuration →](/micro/configuration) - Kong, NATS, and service setup
-- [Getting Started →](/micro/getting-started) - Step-by-step deployment
-
-**Additional Resources:**
-- [Troubleshooting →](/troubleshooting) - Common issues and solutions
-- [Core Concepts](/core-concepts) - Understanding goserve fundamentals
-- [API Documentation](https://documenter.getpostman.com/view/1552895/2sA3dxCWsa) - Try the API
