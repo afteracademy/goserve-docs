@@ -15,6 +15,7 @@ Error starting userland proxy: listen tcp4 0.0.0.0:8080: bind: address already i
 **Solutions:**
 
 1. **Find what's using the port:**
+
 ```bash
 # macOS/Linux
 lsof -i :8080
@@ -24,15 +25,17 @@ netstat -ano | findstr :8080
 ```
 
 2. **Stop the conflicting process or change the port:**
+
 ```yaml
 # docker-compose.yml
 services:
   app:
     ports:
-      - "8081:8080"  # Changed from 8080:8080
+      - "8081:8080" # Changed from 8080:8080
 ```
 
 3. **Stop all containers and restart:**
+
 ```bash
 docker compose down
 docker compose up --build -d
@@ -46,16 +49,16 @@ docker compose up --build -d
 
 1. **Start Docker Desktop** (macOS/Windows)
 2. **Start Docker service** (Linux):
+
 ```bash
 sudo systemctl start docker
 ```
 
 3. **Verify Docker is running:**
+
 ```bash
 docker ps
 ```
-
----
 
 ## Database Issues
 
@@ -70,23 +73,27 @@ error connecting to database: dial tcp 127.0.0.1:5432: connect: connection refus
 **Solutions:**
 
 1. **Check container is running:**
+
 ```bash
 docker ps | grep goserver-postgres
 ```
 
 2. **Check container health:**
+
 ```bash
 docker compose ps
 docker compose logs goserver-postgres
 ```
 
 3. **Verify environment variables:**
+
 ```bash
 # Check .env file has correct database URL
 cat .env | grep DATABASE_URL
 ```
 
 4. **Test direct connection:**
+
 ```bash
 docker exec -it goserver-postgres psql -U goserve -d goserve_db
 ```
@@ -98,17 +105,20 @@ docker exec -it goserver-postgres psql -U goserve -d goserve_db
 **Solutions:**
 
 1. **Check container status:**
+
 ```bash
 docker ps | grep goserver-mongo
 docker compose logs goserver-mongo
 ```
 
 2. **Test MongoDB health:**
+
 ```bash
 docker exec -it goserver-mongo mongosh --eval "db.adminCommand('ping')"
 ```
 
 3. **Verify connection string in .env:**
+
 ```env
 DATABASE_URL=mongodb://goserve:changeit@goserver-mongo:27017/goserve_db?authSource=goserve_db
 ```
@@ -118,6 +128,7 @@ DATABASE_URL=mongodb://goserve:changeit@goserver-mongo:27017/goserve_db?authSour
 **Problem:** Tables/collections don't exist after first run.
 
 **PostgreSQL Solution:**
+
 ```bash
 # Recreate database with fresh migration
 docker compose down -v
@@ -125,13 +136,12 @@ docker compose up --build -d
 ```
 
 **MongoDB Solution:**
+
 ```bash
 # MongoDB creates collections automatically
 # Check if indexes are created:
 docker exec -it goserver-mongo mongosh goserve_db --eval "db.getCollectionNames()"
 ```
-
----
 
 ## Authentication Issues
 
@@ -146,24 +156,28 @@ panic: unable to load keys from /app/keys: open /app/keys/private.pem: no such f
 **Solutions:**
 
 1. **Generate RSA keys:**
+
 ```bash
 go run .tools/rsa/keygen.go
 ```
 
 2. **Verify keys exist:**
+
 ```bash
 ls -la keys/
 # Should show: private.pem, public.pem
 ```
 
 3. **Check Docker volume mount:**
+
 ```yaml
 # docker-compose.yml
 volumes:
-  - ./keys:/app/keys  # Ensure this line exists
+  - ./keys:/app/keys # Ensure this line exists
 ```
 
 4. **Rebuild containers:**
+
 ```bash
 docker compose up --build -d
 ```
@@ -175,6 +189,7 @@ docker compose up --build -d
 **Solutions:**
 
 1. **Check token expiration:**
+
 ```go
 // Tokens expire based on .env settings
 ACCESS_TOKEN_VALIDITY_SEC=3600    # 1 hour
@@ -182,6 +197,7 @@ REFRESH_TOKEN_VALIDITY_SEC=604800 # 7 days
 ```
 
 2. **Verify key pairs match:**
+
 ```bash
 # Regenerate both keys together
 rm keys/*
@@ -190,6 +206,7 @@ docker compose restart
 ```
 
 3. **Check clock synchronization:**
+
 ```bash
 # System time must be accurate
 date
@@ -203,6 +220,7 @@ date
 **Solutions:**
 
 1. **Verify API key format in database:**
+
 ```sql
 -- PostgreSQL
 SELECT * FROM api_keys WHERE status = true;
@@ -212,18 +230,18 @@ db.api_keys.find({ status: true })
 ```
 
 2. **Check header name:**
+
 ```bash
 # Correct header:
 curl -H "x-api-key: your-key-here" http://localhost:8080/endpoint
 ```
 
 3. **Verify middleware is registered:**
+
 ```go
 // Should be in route setup
 router.Use(middleware.ApiKeyValidator())
 ```
-
----
 
 ## Build & Compilation Issues
 
@@ -234,6 +252,7 @@ router.Use(middleware.ApiKeyValidator())
 **Solutions:**
 
 1. **Check Go version:**
+
 ```bash
 go version
 # Should be 1.21 or higher
@@ -242,6 +261,7 @@ go version
 2. **Update Go:** Download from [golang.org/dl](https://golang.org/dl/)
 
 3. **Clean module cache:**
+
 ```bash
 go clean -modcache
 go mod download
@@ -254,19 +274,19 @@ go mod download
 **Solutions:**
 
 1. **Use Go proxy:**
+
 ```bash
 export GOPROXY=https://proxy.golang.org,direct
 go mod download
 ```
 
 2. **Clear and rebuild:**
+
 ```bash
 go clean -modcache
 rm go.sum
 go mod tidy
 ```
-
----
 
 ## Microservices-Specific Issues
 
@@ -277,17 +297,20 @@ go mod tidy
 **Solutions:**
 
 1. **Check Kong logs:**
+
 ```bash
 docker compose logs kong
 ```
 
 2. **Verify database migrations:**
+
 ```bash
 docker compose run --rm kong kong migrations bootstrap
 docker compose up kong
 ```
 
 3. **Check port conflicts:**
+
 ```bash
 # Kong uses ports 8000 (HTTP) and 8001 (Admin)
 lsof -i :8000
@@ -301,17 +324,20 @@ lsof -i :8001
 **Solutions:**
 
 1. **Check NATS is running:**
+
 ```bash
 docker compose logs nats
 docker compose ps | grep nats
 ```
 
 2. **Verify NATS URL in .env:**
+
 ```env
 NATS_URL=nats://nats:4222
 ```
 
 3. **Test NATS connectivity:**
+
 ```bash
 docker exec -it <service-container> nc -zv nats 4222
 ```
@@ -323,12 +349,14 @@ docker exec -it <service-container> nc -zv nats 4222
 **Solutions:**
 
 1. **Check Docker network:**
+
 ```bash
 docker network ls
 docker network inspect <network-name>
 ```
 
 2. **Verify service names in environment:**
+
 ```env
 # Services use container names for DNS
 AUTH_SERVICE_URL=http://goserver-auth:8080
@@ -336,11 +364,10 @@ BLOG_SERVICE_URL=http://goserver-blog:8080
 ```
 
 3. **Test inter-service connectivity:**
+
 ```bash
 docker exec -it goserver-blog ping goserver-auth
 ```
-
----
 
 ## Redis Issues
 
@@ -351,18 +378,21 @@ docker exec -it goserver-blog ping goserver-auth
 **Solutions:**
 
 1. **Check Redis container:**
+
 ```bash
 docker compose logs redis
 docker compose ps | grep redis
 ```
 
 2. **Test Redis connection:**
+
 ```bash
 docker exec -it <redis-container> redis-cli ping
 # Should return: PONG
 ```
 
 3. **Verify Redis URL:**
+
 ```env
 REDIS_URL=redis:6379
 ```
@@ -374,22 +404,23 @@ REDIS_URL=redis:6379
 **Solutions:**
 
 1. **Clear Redis cache:**
+
 ```bash
 docker exec -it <redis-container> redis-cli FLUSHALL
 ```
 
 2. **Check cache keys:**
+
 ```bash
 docker exec -it <redis-container> redis-cli KEYS '*'
 ```
 
 3. **Verify cache TTL:**
+
 ```go
 // Check cache expiration settings
 cacheClient.Set(ctx, key, value, 10*time.Minute)
 ```
-
----
 
 ## Testing Issues
 
@@ -400,17 +431,20 @@ cacheClient.Set(ctx, key, value, 10*time.Minute)
 **Solutions:**
 
 1. **Ensure test database is running:**
+
 ```bash
 docker compose ps
 ```
 
 2. **Check test environment variables:**
+
 ```bash
 # Tests may use different env file
 cat .env.test
 ```
 
 3. **Run tests with verbose output:**
+
 ```bash
 go test -v ./...
 ```
@@ -422,6 +456,7 @@ go test -v ./...
 **Solutions:**
 
 1. **Use transaction rollback:**
+
 ```go
 // In test setup
 tx := db.Begin()
@@ -429,13 +464,12 @@ defer tx.Rollback()
 ```
 
 2. **Clean database between tests:**
+
 ```go
 func (s *TestSuite) TearDownTest() {
     s.DB.Exec("TRUNCATE TABLE users CASCADE")
 }
 ```
-
----
 
 ## Performance Issues
 
@@ -444,6 +478,7 @@ func (s *TestSuite) TearDownTest() {
 **Solutions:**
 
 1. **Check database indexes:**
+
 ```sql
 -- PostgreSQL
 EXPLAIN ANALYZE SELECT * FROM users WHERE email = 'test@example.com';
@@ -453,11 +488,13 @@ CREATE INDEX idx_users_email ON users(email);
 ```
 
 2. **Monitor Redis cache hits:**
+
 ```bash
 docker exec -it <redis-container> redis-cli INFO stats | grep hit
 ```
 
 3. **Enable query logging:**
+
 ```go
 // In database config
 db.Logger = logger.Default.LogMode(logger.Info)
@@ -468,6 +505,7 @@ db.Logger = logger.Default.LogMode(logger.Info)
 **Solutions:**
 
 1. **Check connection pool settings:**
+
 ```go
 // Adjust in database config
 db.SetMaxOpenConns(25)
@@ -476,11 +514,10 @@ db.SetConnMaxLifetime(5 * time.Minute)
 ```
 
 2. **Monitor container resources:**
+
 ```bash
 docker stats
 ```
-
----
 
 ## Environment Configuration
 
@@ -491,6 +528,7 @@ docker stats
 **Solutions:**
 
 1. **Copy example environment file:**
+
 ```bash
 go run .tools/copy/envs.go
 # Or manually:
@@ -498,6 +536,7 @@ cp .env.example .env
 ```
 
 2. **Verify all required variables:**
+
 ```bash
 # Check which variables are missing
 cat .env.example
@@ -505,13 +544,12 @@ diff .env.example .env
 ```
 
 3. **Load environment in development:**
+
 ```bash
 # Using godotenv
 export $(cat .env | xargs)
 go run main.go
 ```
-
----
 
 ## Development Workflow Issues
 
@@ -522,6 +560,7 @@ go run main.go
 **Solutions:**
 
 1. **Verify volume mounts:**
+
 ```yaml
 # docker-compose.yml
 volumes:
@@ -529,6 +568,7 @@ volumes:
 ```
 
 2. **Check file watcher:**
+
 ```bash
 # Install air for hot reload
 go install github.com/cosmtrek/air@latest
@@ -542,25 +582,27 @@ air
 **Solutions:**
 
 1. **Check launch.json configuration:**
+
 ```json
 {
   "version": "0.2.0",
-  "configurations": [{
-    "name": "Launch Package",
-    "type": "go",
-    "request": "launch",
-    "mode": "debug",
-    "program": "${workspaceFolder}"
-  }]
+  "configurations": [
+    {
+      "name": "Launch Package",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}"
+    }
+  ]
 }
 ```
 
 2. **Ensure Delve is installed:**
+
 ```bash
 go install github.com/go-delve/delve/cmd/dlv@latest
 ```
-
----
 
 ## Getting More Help
 
@@ -575,8 +617,6 @@ If these solutions don't resolve your issue:
    - Relevant logs (`docker compose logs`)
 
 4. **Watch Tutorials:** [YouTube Channel](https://www.youtube.com/@afteracad)
-
----
 
 ## Preventive Measures
 

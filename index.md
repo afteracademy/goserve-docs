@@ -78,25 +78,20 @@ goserve is built with industry-standard Go libraries:
 
 ### Getting Started
 - **[Getting Started](/getting-started)** - Quick start guide with examples
-- **[Installation](/installation)** - Install goserve and set up your project
-- **[PostgreSQL Example](/postgres/)** - Complete REST API implementation
-
-### Framework Guide
-- **[Architecture](/architecture)** - Framework architecture and design patterns
+- **[Framework Architecture](/architecture)** - Framework architecture and design patterns
 - **[Core Concepts](/core-concepts)** - Controllers, services, DTOs, and patterns
-- **[Configuration](/configuration)** - Environment setup and configuration options
 
 ## Example Projects
 
 Learn by example with complete, production-ready implementations:
 
-### 1. [PostgreSQL Example](/postgres/)
+##### 1. [PostgreSQL Example](/postgres/)
 Complete REST API with PostgreSQL, Redis, JWT authentication, role-based authorization, and comprehensive testing.
 
-### 2. [MongoDB Example](/mongo/)
+##### 2. [MongoDB Example](/mongo/)
 Complete REST API with MongoDB, Redis, and JWT authentication.
 
-### 3. [Microservices (gomicro)](/micro/)
+##### 3. [Microservices (gomicro)](/micro/)
 Microservices architecture with Kong API gateway, NATS messaging, and Docker orchestration.
 
 ## Quick Start

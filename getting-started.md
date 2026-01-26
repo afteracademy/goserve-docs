@@ -11,7 +11,7 @@ Get up and running with the goserve framework in minutes.
 - **Production-ready example**: [PostgreSQL example](/postgres/)
 - **Document database**: [MongoDB example](/mongo/)
 - **Distributed system**: [gomicro](/micro/) - Kong + NATS + Postgres + Mongo + Redis
-- **Build from scratch**: Follow the installation steps below
+- **Build from templates**: Follow the installation steps below
 
 ## Prerequisites
 
@@ -34,80 +34,95 @@ go version
 git --version
 ```
 
-## Installation
-
-Install goserve in your Go project:
-
-```bash
-go get github.com/afteracademy/goserve
-```
-
-Or add it to your `go.mod`:
-
-```go
-require github.com/afteracademy/goserve v2.1.1
-```
-
-Then run:
-
-```bash
-go mod tidy
-```
-
 ## Quick Start
 
-### 1. Create a New Project
+### 1. Run goservergen CLI to generate a new project
+More details: [goservegen](https://github.com/afteracademy/goservegen)
 
+goservegen CLI can generate a boilerplate REST API server project with either PostgreSQL or MongoDB as the database.
+> goservegen `[project directory path]` `[project module]` `[Database Type - mongo/postgres]`
+
+Run the either of the following command in your terminal:
+
+**1. Postgres Project**
 ```bash
-mkdir my-goserve-app
-cd my-goserve-app
-go mod init my-goserve-app
-go get github.com/afteracademy/goserve
+go run github.com/afteracademy/goservegen/v2@latest ~/Downloads/my_project github.com/yourusername/example postgres
 ```
 
-### 2. Scaffold a Feature (fastest path)
-
-Use the PostgreSQL example’s generator pattern: create `api/feature/controller.go`, `service.go`, `dto`, `model`, and register in `startup/module.go`. See [Extend a feature](/core-concepts#extend-a-feature) for the minimal steps.
-
-### 3. Server Setup
-
-The goserve framework uses a structured startup system. Based on the PostgreSQL example, the actual server initialization involves:
-
-- **Environment Configuration**: Loading database credentials, JWT keys, etc.
-- **Database Connections**: PostgreSQL and Redis connection pools
-- **Dependency Injection**: Module system for wiring components
-- **Server Startup**: Structured initialization via `startup.Server()`
-
-For a complete working example, see the **[PostgreSQL Example](/postgres/)** which demonstrates the full server setup pattern.
-
-### 3. Run the PostgreSQL Example
-
+**2. Mongo Project**
 ```bash
-git clone https://github.com/afteracademy/goserve-example-api-server-postgres.git
-cd goserve-example-api-server-postgres
-go run .tools/rsa/keygen.go
-go run .tools/copy/envs.go
+go run github.com/afteracademy/goservegen/v2@latest ~/Downloads/my_project github.com/yourusername/example mongo
+```
+
+> It will generate project named `my_project` located at `~/Downloads` and module `github.com/yourusername/example`
+
+### Run the project using Docker
+Go to the project directory
+```bash
+cd ~/Downloads/my_project	
+```
+Build and run the Docker containers
+```bash
 docker compose up --build
 ```
 
-Your API will be available at `http://localhost:8080`
-
-### 4. Smoke-test the running API
-
+Check the health endpoint
 ```bash
-export API_KEY=dev-$(openssl rand -hex 6)
-docker compose exec postgres \
-	psql -U goserver_dev_db_user -d goserver_dev_db \
-	-c "INSERT INTO api_keys (key, permissions, comments, version) VALUES ('$API_KEY', '{\"GENERAL\"}', '{\"docs\"}', 1);"
-curl -H "x-api-key: $API_KEY" http://localhost:8080/health
+curl http://localhost:8080/health
 ```
 
-More options and guidance: [API key setup](/api-keys).
+Response
+```json
+{
+  "code": "10000",
+  "status": 200,
+  "message": "success",
+  "data": {
+    "timestamp": "2026-01-25T06:45:17.228713387Z",
+    "status": "OK"
+  }
+}
+```
 
-### Fast checks (recommended)
-- Run tests: `go test ./...`
-- Health: `curl -H "x-api-key: $API_KEY" http://localhost:8080/health`
-- Seed reminder: ensure at least one API key exists before calling auth/blog routes.
+### Now Open the generated project in your IDE/editor of choice
+> Have fun developing your REST API server!
+
+### Generated Project Structure
+```
+.
+├── Dockerfile
+├── api
+│   ├── health
+│   │   ├── controller.go
+│   │   ├── dto
+│   │   │   └── health_check.go
+│   │   └── service.go
+│   └── message
+│       ├── controller.go
+│       ├── dto
+│       │   └── create_message.go
+│       ├── model
+│       │   └── message.go
+│       └── service.go
+├── cmd
+│   └── main.go
+├── config
+│   └── env.go
+├── docker-compose.yml
+├── go.mod
+├── go.sum
+├── keys
+│   ├── private.pem
+│   └── public.pem
+├── migrations
+├── startup
+│   ├── module.go
+│   ├── server.go
+│   └── testserver.go
+└── utils
+    ├── convertor.go
+    └── file.go
+```
 
 ## Framework Components
 
@@ -115,9 +130,10 @@ goserve provides several key components organized in a layered architecture:
 
 ### Network Layer
 - **Controllers** - HTTP request handlers with built-in auth
-- **Middleware** - JWT authentication, role authorization, CORS
-- **Route Groups** - Feature-based route organization
-- **Error Handling** - Structured error responses
+- **Middleware** - JWT authentication, role authorization, etc.
+- **Module** - Dependency injection setup
+- **Router** - Spin Gin for routing
+- **Utilities** - Request/response helpers
 
 ### Database Layer
 - **PostgreSQL** - Advanced pgx driver with connection pooling
@@ -128,13 +144,12 @@ goserve provides several key components organized in a layered architecture:
 - **Services** - Business logic with caching and transactions
 - **Models** - Database schema representations
 - **DTOs** - Type-safe request/response objects
-- **Validation** - Struct-based input validation
+- **Validation** - Struct-based input/output validation
 
 ### Security & Authentication
 - **JWT Authentication** - RSA-signed tokens (access + refresh)
 - **Role-Based Authorization** - Hierarchical permissions
 - **API Keys** - Edge authentication
-- **Password Hashing** - Secure password storage
 
 ## Example Projects
 
