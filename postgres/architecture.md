@@ -6,11 +6,11 @@ Understanding the goserve PostgreSQL example API architecture and design pattern
 
 The goserve PostgreSQL example demonstrates a complete **production-ready REST API** built with the goserve framework using PostgreSQL as the primary database. It follows a **feature-based modular architecture** where each API endpoint is organized into self-contained modules with clear separation of concerns, JWT authentication, and comprehensive testing.
 
-### Why this stack
+### Why This Stack
 
-- table-first: flexible schemas with DTO validation and cache-aside Redis support.
-- Same security posture: API key edge + JWT + roles mirroring the Postgres example.
-- Lean starter: minimal surface area to prototype quickly while keeping tests and Docker.
+- **Table-first architecture**: Flexible schemas with DTO validation and cache-aside Redis support
+- **Same security posture**: API key edge + JWT + roles mirroring the PostgreSQL example
+- **Lean starter**: Minimal surface area to prototype quickly while keeping tests and Docker
 
 ### Core Principles
 

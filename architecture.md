@@ -6,7 +6,7 @@ Understanding the goserve framework architecture and design patterns.
 
 goserve is built on a **feature-based architecture** that promotes clean code, separation of concerns, and testability. The framework emphasizes each API being independent while sharing common services, reducing code conflicts in team environments.
 
-It provides recipe for building scalable RESTful APIs with built-in support to integrate for authentication, authorization, caching, and database interactions.
+It provides a recipe for building scalable RESTful APIs with built-in support to integrate for authentication, authorization, caching, and database interactions.
 
 ## Core Principles
 

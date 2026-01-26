@@ -6,11 +6,11 @@ Understanding the goserve MongoDB example API architecture and design patterns.
 
 The goserve MongoDB example demonstrates a complete **production-ready REST API** built with the goserve framework using MongoDB as the primary database. It follows a **feature-based modular architecture** where each API endpoint is organized into self-contained modules with clear separation of concerns, JWT authentication, and comprehensive testing.
 
-### Why this stack
+### Why This Stack
 
-- Document-first: flexible schemas with DTO validation and cache-aside Redis support.
-- Same security posture: API key edge + JWT + roles mirroring the Postgres example.
-- Lean starter: minimal surface area to prototype quickly while keeping tests and Docker.
+- **Document-first architecture**: Flexible schemas with DTO validation and cache-aside Redis support
+- **Same security posture**: API key edge + JWT + roles mirroring the MongoDB example
+- **Lean starter**: Minimal surface area to prototype quickly while keeping tests and Docker
 
 ### Core Principles
 

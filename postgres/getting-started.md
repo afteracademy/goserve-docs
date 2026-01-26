@@ -180,7 +180,7 @@ curl --location 'http://localhost:8000/auth/signin/basic' \
     "password": "changeit"
 }'
 ```
-Resonpse
+Response
 ```json
 {
     "code": "10000",
@@ -219,7 +219,7 @@ Resonpse
 ```
 
 ## Roles
-You must assign appropriate roles to users in the database to access protected routes. You can do this by directly updating the `users` table in PostgresSQL Database. You will find the roles defined in the `api/user/model/role.go` table.
+You must assign appropriate roles to users in the database to access protected routes. You can do this by directly updating the `users` table in the PostgreSQL database. You will find the roles defined in `api/user/model/role.go`.
 
 ```go
 const RolesTableName = "roles"

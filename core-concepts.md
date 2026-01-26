@@ -122,7 +122,7 @@ func (d *Pagination) ValidateErrors(errs validator.ValidationErrors) ([]string, 
 		case "min":
 			msgs = append(msgs, fmt.Sprintf("%s must be min %s", err.Field(), err.Param()))
 		case "max":
-			msgs = append(msgs, fmt.Sprintf("%s must be max%s", err.Field(), err.Param()))
+			msgs = append(msgs, fmt.Sprintf("%s must be max %s", err.Field(), err.Param()))
 		default:
 			msgs = append(msgs, fmt.Sprintf("%s is invalid", err.Field()))
 		}
@@ -163,7 +163,7 @@ type ResCode string
 
 const (
 	success_code ResCode = "10000"
-	failue_code  ResCode = "10001"
+	failure_code ResCode = "10001"
 )
 
 type response[T any] struct {

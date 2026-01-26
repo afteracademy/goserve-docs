@@ -39,7 +39,7 @@ git --version
 ### 1. Run goservergen CLI to generate a new project
 More details: [goservegen](https://github.com/afteracademy/goservegen)
 
-goservegen CLI can generate a boilerplate REST API server project with either PostgreSQL or MongoDB as the database.
+The goservegen CLI can generate a boilerplate REST API server project with either PostgreSQL or MongoDB as the database.
 > goservegen `[project directory path]` `[project module]` `[Database Type - mongo/postgres]`
 
 Run the either of the following command in your terminal:
