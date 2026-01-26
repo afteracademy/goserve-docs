@@ -8,7 +8,7 @@
 
 **Build Production-Ready REST APIs with Go**
 
-[![Documentation](https://img.shields.io/badge/📚_Read_Documentation-goserve.afteracademy.com-blue?style=for-the-badge)](http://goserve.afteracademy.com)
+[![Documentation](https://img.shields.io/badge/📚_Read_Documentation-goserve.afteracademy.com-blue?style=for-the-badge)](https://goserve.afteracademy.com)
 
 [![GitHub](https://img.shields.io/badge/Framework-goserve-00ADD8?style=flat&logo=go)](https://github.com/afteracademy/goserve)
 [![Latest Version](https://img.shields.io/badge/version-v2.1.2-green)](https://github.com/afteracademy/goserve)
@@ -24,7 +24,7 @@
 
 ## Documentation Site
 
-**[goserve.afteracademy.com](http://goserve.afteracademy.com)**
+**[goserve.afteracademy.com](https://goserve.afteracademy.com)**
 
 Complete guides, examples, and API references for building production-ready Go applications.
 
@@ -41,23 +41,23 @@ Complete guides, examples, and API references for building production-ready Go a
 
 ## Documentation Structure
 ### Getting Started
-- [Quick Start Guide](http://goserve.afteracademy.com/getting-started)
-- [Framework Architecture](http://goserve.afteracademy.com/architecture)
-- [Core Concepts](http://goserve.afteracademy.com/core-concepts)
+- [Quick Start Guide](https://goserve.afteracademy.com/getting-started)
+- [Framework Architecture](https://goserve.afteracademy.com/architecture)
+- [Core Concepts](https://goserve.afteracademy.com/core-concepts)
 
 ### Example Projects
 
-#### 1. [PostgreSQL Example](http://goserve.afteracademy.com/postgres/)
+#### 1. [PostgreSQL Example](https://goserve.afteracademy.com/postgres/)
 Complete REST API with PostgreSQL, Redis, JWT authentication, role-based authorization, and comprehensive testing.
 
 **Repository**: [goserve-example-api-server-postgres](https://github.com/afteracademy/goserve-example-api-server-postgres)
 
-#### 2. [MongoDB Example](http://goserve.afteracademy.com/mongo/)
+#### 2. [MongoDB Example](https://goserve.afteracademy.com/mongo/)
 Complete REST API with MongoDB, Redis, and JWT authentication.
 
 **Repository**: [goserve-example-api-server-mongo](https://github.com/afteracademy/goserve-example-api-server-mongo)
 
-#### 3. [Microservices (gomicro)](http://goserve.afteracademy.com/micro/)
+#### 3. [Microservices (gomicro)](https://goserve.afteracademy.com/micro/)
 Microservices architecture with Kong API gateway, NATS messaging, and Docker orchestration.
 
 **Repository**: [gomicro](https://github.com/afteracademy/gomicro)
@@ -86,7 +86,7 @@ Found an issue or want to improve the documentation?
 
 ## Links
 
-- **Documentation**: [goserve.afteracademy.com](http://goserve.afteracademy.com)
+- **Documentation**: [goserve.afteracademy.com](https://goserve.afteracademy.com)
 - **Framework Repository**: [github.com/afteracademy/goserve](https://github.com/afteracademy/goserve)
 - **Project Generator**: [github.com/afteracademy/goservegen](https://github.com/afteracademy/goservegen)
 - **YouTube Channel**: [@afteracad](https://www.youtube.com/@afteracad)
