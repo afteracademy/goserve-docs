@@ -4,7 +4,7 @@ export default defineConfig({
   srcDir: ".",
   srcExclude: ["README.md"],
   base: "/",
-  title: "Official documentation for goserve",
+  title: "goserve Docs",
   description:
     "Official documentation for goserve - Production-ready Go framework for building REST APIs with PostgreSQL, MongoDB, microservices, JWT authentication, Redis caching, and clean architecture. Complete guides, examples, and tutorials.",
 
