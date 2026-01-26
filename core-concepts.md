@@ -716,7 +716,7 @@ result, err := messageQueryBuilder.SingleQuery().InsertAndRetrieveOne(msg)
 
 ## Microservices
 
-goseer provides built-in support for building microservices using NATS as the messaging system.
+goserve provides built-in support for building microservices using NATS as the messaging system.
 
 `package micro` provides the necessary abstractions and helpers to create microservices that can communicate with each other using NATS. It includes modified versions of Controller and Router to facilitate microservice development. Most of the concepts from the main framework apply here as well.
 

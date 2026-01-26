@@ -6,11 +6,6 @@ Understanding the gomicro microservices architecture and design patterns.
 
 gomicro demonstrates a complete microservices implementation using the goserve micro framework. The project breaks down a monolithic blog application into independent services that communicate via NATS messaging, orchestrated through Kong API gateway.
 
-### Why this stack
-- Gateway-first: Kong + custom plugin handles API keys, routing, and rate limiting.
-- Event-ready: NATS patterns shown alongside REST for cross-service workflows.
-- Polyglot data: Postgres for auth, Mongo for blogs, illustrating per-service storage choices.
-
 ### Core Principles
 
 1. **Service Independence** - Each service runs independently with its own database and cache
@@ -36,524 +31,285 @@ gomicro demonstrates a complete microservices implementation using the goserve m
 **Purpose**: Centralized API management and routing
 
 **Components**:
+
 - **Custom Go Plugin**: API key authentication
 - **Request Routing**: Routes to appropriate services
-- **Rate Limiting**: Prevents abuse
 - **Load Balancing**: Distributes requests across service instances
 
 **Configuration**:
+
 ```yaml
 # kong/kong.yml
-services:
-  - name: auth-service
-    url: http://auth:8001
-    plugins:
-      - name: apikey-auth
-    routes:
-      - paths: ["/auth"]
-        methods: ["POST", "GET"]
+_format_version: "2.1"
+_transform: true
 
-  - name: blog-service
-    url: http://blog:8002
-    plugins:
-      - name: apikey-auth
+services:
+  - name: auth
+    url: http://auth:8000
     routes:
-      - paths: ["/blog"]
-        methods: ["GET", "POST", "PUT", "DELETE"]
+      - name: auth
+        paths:
+          - /auth
+  - name: blog
+    url: http://blog:8000
+    routes:
+      - name: blog
+        paths:
+          - /blog
+plugins:
+  - name: apikey-auth-plugin
+    config:
+      verification_urls:
+        - http://auth:8000/verify/apikey
 ```
 
 ### Auth Service
 
 **Technology Stack**:
+
 - **Framework**: goserve micro
 - **Database**: PostgreSQL
 - **Cache**: Redis
 - **Communication**: NATS
 
 **Responsibilities**:
+
 - User authentication (signup/signin)
 - JWT token validation
 - Role-based authorization
 - API key management
 - User profile management
 
-**Database Schema**:
-```sql
--- PostgreSQL tables
-CREATE TABLE users (
-  id UUID PRIMARY KEY,
-  email VARCHAR UNIQUE NOT NULL,
-  password_hash VARCHAR NOT NULL,
-  name VARCHAR NOT NULL,
-  role VARCHAR NOT NULL DEFAULT 'LEARNER',
-  verified BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE TABLE api_keys (
-  id UUID PRIMARY KEY,
-  key_hash VARCHAR UNIQUE NOT NULL,
-  service_name VARCHAR,
-  created_at TIMESTAMP DEFAULT NOW()
-);
-```
-
 ### Blog Service
 
 **Technology Stack**:
+
 - **Framework**: goserve micro
 - **Database**: MongoDB
 - **Cache**: Redis
 - **Communication**: NATS
 
 **Responsibilities**:
+
 - Blog CRUD operations
 - Author/editor workflows
 - Content publishing
 - Comment management
 - Tag management
 
-**Database Schema**:
-```javascript
-// MongoDB collections
-db.blogs.insertOne({
-  _id: ObjectId(),
-  title: "Blog Title",
-  description: "Blog description",
-  content: "Full blog content",
-  slug: "blog-slug",
-  authorId: ObjectId(),
-  tags: ["tech", "golang"],
-  status: "published",
-  publishedAt: new Date(),
-  createdAt: new Date(),
-  updatedAt: new Date()
-});
-```
+## Microservices
 
-## Communication Patterns
+goserve provides built-in support for building microservices using NATS as the messaging system.
 
-### API Gateway Flow
+`package micro` provides the necessary abstractions and helpers to create microservices that can communicate with each other using NATS. It includes modified versions of Controller and Router to facilitate microservice development. Most of the concepts from the main framework apply here as well.
 
-```
-Client Request
-    ↓
-Kong Gateway (Port 8000)
-    ↓ Custom Plugin
-    ↓ Calls: auth-service:8000/verify/apikey
-    ↓ Validates API key
-    ↓ Routes to target service
-Target Service Response
-    ↓
-Kong Gateway
-    ↓
-Client Response
-```
-
-### Inter-Service Communication
-
-#### Synchronous Communication (Request-Reply)
+## NATS Server Client
 
 ```go
-// Blog service requests user validation from auth service
-func (s *blogService) validateUserRole(userID string, requiredRole string) (bool, error) {
-    request := &message.ValidateRoleRequest{
-        UserID: userID,
-        Role: requiredRole,
-    }
+type Config struct {
+	NatsUrl            string
+	NatsServiceName    string
+	NatsServiceVersion string
+	Timeout            time.Duration
+}
 
-    response, err := micro.RequestNats[message.ValidateRoleRequest, message.ValidateRoleResponse](
-        s.natsClient,
-        "auth.validate.role",
-        request,
-    )
-
-    return response.Valid, err
+type NatsClient interface {
+	GetInstance() *natsClient
+	Disconnect()
 }
 ```
 
-#### Event-Driven Communication
+You can connect to a NATS server and manage the connection lifecycle.
 
 ```go
-// Auth service publishes user created event
-func (s *authService) createUser(user *model.User) error {
-    // Save to database
-    err := s.saveUser(user)
-    if err != nil {
-        return err
-    }
-
-    // Publish event
-    event := &message.UserCreatedEvent{
-        UserID: user.ID,
-        Email: user.Email,
-        Name: user.Name,
-    }
-
-    return s.natsClient.Publish("user.created", event)
+natsConfig := micro.Config{
+	NatsUrl:            env.NatsUrl,
+	NatsServiceName:    env.NatsServiceName,
+	NatsServiceVersion: env.NatsServiceVersion,
+	Timeout:            time.Duration(env.NatsTimeoutSec) * time.Second,
 }
 
-// Blog service subscribes to user events
-func (s *blogService) handleUserCreated(msg *nats.Msg) {
-    var event message.UserCreatedEvent
-    json.Unmarshal(msg.Data, &event)
-
-    // Update blog author information
-    s.updateAuthorInfo(event.UserID, event.Name)
-}
+natsClient := micro.NewNatsClient(&natsConfig)
+defer natsClient.Disconnect()
 ```
 
-## Service Implementation
+## NATS Message
 
-### Controller Pattern
+Define NATS message structures as DTOs.
 
 ```go
-package blog
-
-import (
-    "github.com/gin-gonic/gin"
-    "github.com/afteracademy/goserve/v2/micro"
-    "github.com/afteracademy/goserve/v2/network"
-)
-
-type controller struct {
-    micro.Controller
-    service Service
+type Text struct {
+	Value string `json:"value" validate:"required"`
 }
 
-func NewController(authProvider, authorizeProvider network.AuthenticationProvider, service Service) micro.Controller {
-    return &controller{
-        Controller: micro.NewController("/blog", authProvider, authorizeProvider),
-        service: service,
-    }
+func NewText(value string) *Text {
+	return &Text{
+		Value: value,
+	}
 }
 
-func (c *controller) MountRoutes(group *gin.RouterGroup) {
-    // Public routes
-    group.GET("/", c.getBlogs)
-    group.GET("/id/:id", c.getBlogByID)
-
-    // Protected routes
-    protected := group.Group("/")
-    protected.Use(c.AuthProvider.Middleware())
-    {
-        author := protected.Group("/author")
-        author.Use(c.AuthorizeProvider.RequireRole("author", "admin"))
-        {
-            author.POST("/", c.createBlog)
-            author.PUT("/id/:id", c.updateBlog)
-        }
-
-        editor := protected.Group("/editor")
-        editor.Use(c.AuthorizeProvider.RequireRole("editor", "admin"))
-        {
-            editor.PUT("/id/:id/publish", c.publishBlog)
-        }
-    }
-}
-
-func (c *controller) MountNats(group micro.NatsGroup) {
-    group.AddEndpoint("validate.user", micro.NatsHandlerFunc(c.validateUserHandler))
-}
 ```
 
-### Service Pattern
+You can parse NATS messages using helper functions.
 
 ```go
-package blog
+// req micro.NatsRequest
+text, err := micro.JsonToMsg[message.Text](req.Data())
+```
 
-import (
-    "github.com/afteracademy/gomicro/blog_service/api/blog/message"
-    "github.com/afteracademy/goserve/v2/micro"
-    "github.com/afteracademy/goserve/v2/mongo"
-    "github.com/afteracademy/goserve/v2/redis"
-)
+## NATS Request
+You can ask NATS for a response using services.
+
+The framwork provides helper functions to send NATS requests and receive responses.
+
+```go
+// S - Sent message type
+// R - Received message type
+func RequestNats[S any, R any](client NatsClient, subject string, sData *S) (*R, error) 
+
+// S - Sent message type
+// R - Received message type
+// Returns both the response data and the raw NATS message
+func RequestNatsRaw[S any, R any](client NatsClient, subject string, sData *S) (*R, *nats.Msg, error)
+```
+
+Example usage in a service:
+```go
+// Framework creates NATS topic based on controller [path].[AddEndpoint name]
+const NATS_TOPIC_AUTH = "auth.authentication" 
 
 type Service interface {
-    CreateBlog(dto *dto.BlogCreate, authorID string) (*model.Blog, error)
-    GetBlogByID(id string) (*model.Blog, error)
-    ValidateUserRole(userID, role string) (bool, error)
+	Authenticate(token string) (*message.User, error)
+	// other methods
 }
 
 type service struct {
-    natsClient micro.NatsClient
-    blogQueryBuilder mongo.QueryBuilder[model.Blog]
-    blogCache redis.Cache[dto.BlogCache]
+	natsClient micro.NatsClient
 }
 
-func NewService(db mongo.Database, store redis.Store, natsClient micro.NatsClient) Service {
-    return &service{
-        natsClient: natsClient,
-        blogQueryBuilder: mongo.NewQueryBuilder[model.Blog](db, "blogs"),
-        blogCache: redis.NewCache[dto.BlogCache](store),
-    }
+func NewService(natsClient micro.NatsClient) Service {
+	return &service{
+		natsClient: natsClient,
+	}
 }
 
-func (s *service) ValidateUserRole(userID, role string) (bool, error) {
-    request := &message.ValidateRoleRequest{
-        UserID: userID,
-        Role: role,
-    }
-
-    response, err := micro.RequestNats[message.ValidateRoleRequest, message.ValidateRoleResponse](
-        s.natsClient,
-        "auth.validate.role",
-        request,
-    )
-
-    return response.Valid, err
+func (s *service) Authenticate(token string) (*message.User, error) {
+	msg := message.NewText(token)
+	// Send NATS request and receive response in blocking manner
+	return micro.RequestNats[message.Text, message.User](s.natsClient, NATS_TOPIC_AUTH, msg)
 }
+
+// other methods
+
 ```
 
-## Data Management
+## NATS Response
 
-### Database per Service
-
-**Auth Service (PostgreSQL)**:
-- Structured data with relationships
-- ACID transactions for consistency
-- Complex queries with JOINs
-- Foreign key constraints
-
-**Blog Service (MongoDB)**:
-- Flexible document structure
-- Fast reads/writes
-- JSON-like queries
-- Horizontal scaling capabilities
-
-### Caching Strategy
-
-**Redis Integration**:
-```go
-// Cache blog data
-func (s *service) getCachedBlog(id string) (*dto.BlogResponse, error) {
-    return s.blogCache.Get(id)
-}
-
-func (s *service) setCachedBlog(id string, blog *dto.BlogResponse) error {
-    return s.blogCache.Set(id, blog, time.Hour)
-}
-
-// Cache invalidation
-func (s *service) invalidateBlogCache(id string) error {
-    return s.blogCache.Delete(id)
-}
-```
-
-## Deployment Patterns
-
-### Standard Deployment
-
-```yaml
-# docker-compose.yml
-version: '3.8'
-services:
-  kong:
-    image: kong:3.0
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./kong:/kong
-
-  auth-service:
-    build: ./auth_service
-    environment:
-      - SERVICE_PORT=8001
-      - DB_HOST=postgres
-    depends_on:
-      - postgres
-      - redis
-      - nats
-
-  blog-service:
-    build: ./blog_service
-    environment:
-      - SERVICE_PORT=8002
-      - DB_HOST=mongo
-    depends_on:
-      - mongo
-      - redis
-      - nats
-      - kong
-```
-
-### Load Balanced Deployment
-
-```yaml
-# Multiple instances with load balancing
-services:
-  auth-service:
-    build: ./auth_service
-    deploy:
-      replicas: 3
-      resources:
-        limits:
-          memory: 256M
-          cpus: '0.5'
-
-  blog-service:
-    build: ./blog_service
-    deploy:
-      replicas: 2
-      resources:
-        limits:
-          memory: 512M
-          cpus: '1.0'
-```
-
-## Monitoring and Observability
-
-### Health Checks
-
-Each service provides health endpoints:
+Helper functions to send NATS responses.
 
 ```go
-func (s *server) healthCheck(c *gin.Context) {
-    // Check database connectivity
-    if err := s.db.Ping(); err != nil {
-        c.JSON(500, gin.H{"status": "unhealthy", "database": "down"})
-        return
-    }
+// Send message response
+func RespondNatsMessage[T any](req NatsRequest, data *T)
+// Send error response
+func RespondNatsError(req NatsRequest, err error)
+```
 
-    // Check NATS connectivity
-    if err := s.natsClient.Status(); err != nil {
-        c.JSON(500, gin.H{"status": "unhealthy", "nats": "down"})
-        return
-    }
+The controllers AddEndpoint method allows you to register NATS endpoints and their handlers.
 
-    c.JSON(200, gin.H{"status": "healthy"})
+```go
+func (c *controller) MountNats(group micro.NatsGroup) {
+	group.AddEndpoint("authentication", micro.NatsHandlerFunc(c.authenticationHandler))
+	// other endpoints
+}
+
+func (c *controller) authenticationHandler(req micro.NatsRequest) {
+	text, err := micro.JsonToMsg[message.Text](req.Data())
+	if err != nil {
+		micro.RespondNatsError(req, err)
+		return
+	}
+
+	user, _, err := c.service.Authenticate(text.Value)
+	if err != nil {
+		micro.RespondNatsError(req, err)
+		return
+	}
+
+	micro.RespondNatsMessage(req, message.NewUser(user))
 }
 ```
 
-### Logging
+## Microservice Controller
 
-Structured logging across services:
-
-```go
-logger.WithFields(logrus.Fields{
-    "service": "blog-service",
-    "user_id": userID,
-    "blog_id": blogID,
-    "action": "publish",
-}).Info("Blog published successfully")
-```
-
-## Testing Strategy
-
-### Unit Tests
+It extends the base Controller interface to include NATS group mounting.
 
 ```go
-func TestBlogService_CreateBlog(t *testing.T) {
-    mockDB := mongo.NewMockDatabase()
-    mockStore := redis.NewMockStore()
-    mockNats := micro.NewMockNatsClient()
-
-    service := blog.NewService(mockDB, mockStore, mockNats)
-
-    blog, err := service.CreateBlog(&dto.BlogCreate{
-        Title: "Test Blog",
-        Content: "Test content",
-    }, "user123")
-
-    assert.NoError(t, err)
-    assert.NotNil(t, blog)
-    assert.Equal(t, "Test Blog", blog.Title)
+type Controller interface {
+	network.Controller
+	MountNats(group NatsGroup)
 }
 ```
 
-### Integration Tests
+You can create microservice controllers by implementing the Microservice Controller interface:
 
 ```go
-func TestMicroservices_Integration(t *testing.T) {
-    // Start all services
-    authRouter := setupAuthService()
-    blogRouter := setupBlogService()
+type controller struct {
+	micro.Controller
+	// dependencies
+}
 
-    // Test complete flow
-    token := createTestUser(t, authRouter)
-    blog := createTestBlog(t, blogRouter, token)
+func NewController(
+	authProvider network.AuthenticationProvider,
+	authorizeProvider network.AuthorizationProvider,
+	// other dependencies
+) micro.Controller {
+	return &controller{
+		Controller: micro.NewController("/", authProvider, authorizeProvider),
+		// initialize other dependencies
+	}
+}
 
-    assert.NotNil(t, blog)
-    assert.Equal(t, "published", blog.Status)
+func (c *controller) MountNats(group micro.NatsGroup) {
+	group.AddEndpoint("authentication", micro.NatsHandlerFunc(c.authenticationHandler))
+	group.AddEndpoint("authorization", micro.NatsHandlerFunc(c.authorizationHandler))
+}
+
+func (c *controller) authenticationHandler(req micro.NatsRequest) {
+	// handler implementation
+}
+
+func (c *controller) authorizationHandler(req micro.NatsRequest) {
+	// handler implementation
+}
+
+func (c *controller) MountRoutes(group *gin.RouterGroup) {
+	group.GET("/verify/apikey", c.verifyApikeyHandler)
+	group.DELETE("/signout", c.Authentication(), c.signOutBasic)
+	// other routes
+}
+
+func (c *controller) verifyApikeyHandler(ctx *gin.Context) {
+	// handler implementation
 }
 ```
 
-## Security Architecture
-
-### API Key Authentication
-
-Kong plugin validates API keys before routing:
+## Microservice Module
+It is very similar to the network Module interface but for microservices micro Controllers are used instead of network Controllers.
 
 ```go
-func (p *Plugin) Access(kong *pdk.PDK) {
-    apiKey := kong.Request.GetHeader("x-api-key")
-    if apiKey == "" {
-        kong.Response.Exit(401, "API key required", nil)
-        return
-    }
-
-    // Validate with auth service
-    valid, err := p.validateAPIKey(apiKey)
-    if err != nil || !valid {
-        kong.Response.Exit(401, "Invalid API key", nil)
-        return
-    }
+type Module[T any] interface {
+	network.BaseModule[T]
+	Controllers() []Controller
 }
 ```
 
-### JWT Token Validation
-
-Services validate JWT tokens via NATS:
+## Microservice Router
+It extends the base Router interface to include NATS client management and microservice controller loading.
 
 ```go
-func (s *authService) validateToken(tokenString string) (*Claims, error) {
-    // Verify RSA signature
-    token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-        return s.publicKey, nil
-    })
-
-    if err != nil {
-        return nil, err
-    }
-
-    return token.Claims.(*Claims), nil
+type Router interface {
+	network.BaseRouter
+	NatsClient() NatsClient
+	LoadControllers(controllers []Controller)
 }
 ```
-
-## Performance Considerations
-
-### Caching Strategy
-
-- **Application Cache**: Redis for frequently accessed data
-- **Database Cache**: MongoDB built-in caching
-- **API Cache**: Kong caching for static responses
-
-### Database Optimization
-
-- **Indexing**: Proper indexes on query fields
-- **Connection Pooling**: Optimized pool sizes
-- **Read/Write Separation**: Potential for read replicas
-
-### Service Scaling
-
-- **Horizontal Scaling**: Multiple service instances
-- **Load Balancing**: Kong distributes requests
-- **Circuit Breakers**: Prevent cascade failures
-
-## Migration Strategy
-
-### From Monolith to Microservices
-
-1. **Identify Boundaries**: Separate concerns into services
-2. **Extract Auth Service**: Independent authentication
-3. **Extract Blog Service**: Content management
-4. **Implement Communication**: NATS messaging
-5. **Add API Gateway**: Kong for routing
-6. **Database Migration**: Separate databases
-7. **Testing**: Comprehensive integration tests
-
-## Next Steps
-
-- Understand [Core Concepts](/micro/core-concepts) in depth
-- Learn about [Configuration](/micro/configuration) options
-- Explore [API Reference](/micro/api-reference) for complete documentation

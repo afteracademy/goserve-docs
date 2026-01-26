@@ -88,7 +88,6 @@ export default defineConfig({
             { text: "Overview", link: "/micro/" },
             { text: "Getting Started", link: "/micro/getting-started" },
             { text: "Architecture", link: "/micro/architecture" },
-            { text: "Core Concepts", link: "/micro/core-concepts" },
             { text: "Configuration", link: "/micro/configuration" },
             { text: "API Reference", link: "/micro/api-reference" },
           ],
