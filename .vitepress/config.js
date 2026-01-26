@@ -117,6 +117,19 @@ export default defineConfig({
   },
 
   head: [
+    // GTM Tag
+    [
+      "script",
+      {},
+      `(function(w,d,s,l,i){w[l]=w[l]||[];
+w[l].push({'gtm.start': new Date().getTime(),event:'gtm.js'});
+var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';
+j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;
+f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-KTM6GP5F');`,
+    ],
     // Primary Meta Tags
     [
       "meta",
@@ -162,7 +175,7 @@ export default defineConfig({
       "meta",
       {
         property: "og:image",
-        content: "https://goserve.afteracademy.com/images/goserve-banner.png",
+        content: "https://goserve.afteracademy.com/images/cover-goserve.png",
       },
     ],
     ["meta", { property: "og:image:width", content: "1200" }],
@@ -200,7 +213,7 @@ export default defineConfig({
       "meta",
       {
         name: "twitter:image",
-        content: "https://goserve.afteracademy.com/images/goserve-banner.png",
+        content: "https://goserve.afteracademy.com/images/cover-goserve.png",
       },
     ],
     [
