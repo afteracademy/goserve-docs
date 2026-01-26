@@ -1,3 +1,8 @@
+---
+title: MongoDB REST API Reference - Complete Endpoint Documentation
+description: Complete API reference for goserve MongoDB blog platform including authentication, user management, blog CRUD, and flexible document handling.
+---
+
 # API Reference
 
 Complete API endpoint reference for the goserve MongoDB blog platform. All endpoints require an API key in the `x-api-key` header except `/health`.

@@ -1,3 +1,8 @@
+---
+title: MongoDB Configuration - Environment Variables & Settings
+description: Configure goserve MongoDB REST API with environment variables for database, Redis, JWT authentication, server settings, and logging.
+---
+
 # Configuration
 
 Configure the goserve MongoDB example project.

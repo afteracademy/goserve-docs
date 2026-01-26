@@ -1,4 +1,9 @@
-# Project Architecture
+---
+title: PostgreSQL REST API Architecture - goserve Example
+description: Explore goserve PostgreSQL architecture with feature-based modules, JWT authentication, role-based access control, Redis caching, and comprehensive testing patterns.
+---
+
+# PostgreSQL Project Architecture
 
 Understanding the goserve PostgreSQL example API architecture and design patterns.
 

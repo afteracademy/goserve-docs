@@ -1,3 +1,8 @@
+---
+title: MongoDB Core Concepts - Implementation Patterns & Examples
+description: Learn MongoDB-specific patterns in goserve including document models, DTOs, controllers, services, aggregations, indexing, and caching strategies.
+---
+
 # Core Concepts
 
 This guide covers the fundamental concepts and patterns used in the goserve MongoDB example.

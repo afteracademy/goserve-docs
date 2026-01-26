@@ -1,3 +1,8 @@
+---
+title: goserve Framework Architecture - Clean Code & Feature-Based Design
+description: Learn goserve's feature-based architecture, layered design patterns, dependency injection, and best practices for building scalable Go REST APIs.
+---
+
 # Framework Architecture
 
 Understanding the goserve framework architecture and design patterns.

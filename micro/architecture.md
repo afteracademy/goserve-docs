@@ -1,4 +1,9 @@
-# Project Architecture
+---
+title: Go Microservices Architecture - gomicro with Kong & NATS
+description: Learn gomicro's microservices architecture with Kong API Gateway, NATS messaging, service independence, event-driven communication, and polyglot persistence.
+---
+
+# Microservices Project Architecture
 
 Understanding the gomicro microservices architecture and design patterns.
 

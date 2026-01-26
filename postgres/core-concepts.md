@@ -1,3 +1,8 @@
+---
+title: PostgreSQL Core Concepts - Implementation Patterns & Examples
+description: Learn PostgreSQL-specific patterns in goserve including DTOs, models, controllers, services, database operations, caching, and middleware implementation.
+---
+
 # Core Concepts
 
 This guide covers the fundamental concepts and patterns used in the goserve PostgreSQL example.

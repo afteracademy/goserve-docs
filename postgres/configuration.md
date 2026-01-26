@@ -1,3 +1,8 @@
+---
+title: PostgreSQL Configuration - Environment Variables & Settings
+description: Configure goserve PostgreSQL REST API with environment variables for database, Redis, JWT authentication, server settings, and logging.
+---
+
 # Configuration
 
 Configure the goserve PostgreSQL example project.

@@ -1,4 +1,9 @@
-# Getting Started
+---
+title: MongoDB REST API - Getting Started with goserve
+description: Build a production-ready MongoDB REST API with goserve. Includes JWT authentication, flexible schemas, Redis caching, and comprehensive testing.
+---
+
+# Getting Started with MongoDB
 
 Get up and running with the goserve MongoDB example API server. 
 

@@ -1,9 +1,11 @@
 ---
 layout: home
+title: goserve - Go REST API Framework for PostgreSQL, MongoDB & Microservices
+description: Build production-ready REST APIs with Go. goserve framework supports PostgreSQL, MongoDB, microservices with JWT authentication, Redis caching, and comprehensive testing.
 
 hero:
   name: "goserve"
-  text: "Go API Backend Framework"
+  text: "Go REST API Framework"
   tagline: A robust framework for building efficient, reliable and scalable server-side applications
   image:
     src: /images/mascot.svg

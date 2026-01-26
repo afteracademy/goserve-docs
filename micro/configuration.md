@@ -1,3 +1,8 @@
+---
+title: Microservices Configuration - gomicro Environment Setup
+description: Configure gomicro distributed microservices with environment variables for Kong gateway, NATS messaging, PostgreSQL, MongoDB, Redis, and JWT settings.
+---
+
 # Configuration
 
 Configure the gomicro microservices project components.

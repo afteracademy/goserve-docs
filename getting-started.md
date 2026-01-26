@@ -1,3 +1,8 @@
+---
+title: Getting Started with goserve - Go REST API Framework
+description: Quick start guide for goserve - a robust Go framework for building REST APIs with PostgreSQL, MongoDB, JWT authentication, and microservices support.
+---
+
 # Getting Started with goserve
 
 Get up and running with the goserve framework in minutes.

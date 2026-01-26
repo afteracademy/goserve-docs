@@ -1,5 +1,7 @@
 ---
 layout: doc
+title: gomicro - Go Microservices with Kong API Gateway & NATS
+description: Complete Go microservices implementation with Kong gateway, NATS messaging, PostgreSQL, MongoDB, Redis, JWT authentication, and service discovery. Production-ready Docker setup.
 ---
 
 # gomicro - Go Microservices Architecture

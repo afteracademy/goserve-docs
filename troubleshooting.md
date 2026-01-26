@@ -1,3 +1,8 @@
+---
+title: Troubleshooting goserve - Common Issues & Solutions
+description: Solve common goserve problems including Docker port conflicts, PostgreSQL/MongoDB connection issues, JWT authentication errors, and database migration problems.
+---
+
 # Troubleshooting
 
 Common issues and their solutions when working with goserve.

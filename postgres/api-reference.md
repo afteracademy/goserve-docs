@@ -1,6 +1,11 @@
+---
+title: PostgreSQL REST API Reference - Complete Endpoint Documentation
+description: Complete API reference for goserve PostgreSQL blog platform including authentication, user management, blog CRUD, and role-based access control endpoints.
+---
+
 # API Reference
 
-Complete API endpoint reference for the goserve PostgresSQL blog platform. All endpoints require an API key in the `x-api-key` header except `/health`.
+Complete API endpoint reference for the goserve PostgreSQL blog platform. All endpoints require an API key in the `x-api-key` header except `/health`.
 
 [![API Documentation](https://img.shields.io/badge/API%20Documentation-View%20Here-blue?style=for-the-badge)](https://documenter.getpostman.com/view/1552895/2sBXVihVLg)
 

@@ -1,3 +1,8 @@
+---
+title: Microservices with Go - Getting Started with gomicro
+description: Build distributed microservices with Go using Kong API Gateway, NATS messaging, PostgreSQL, MongoDB, and Redis. Complete Docker orchestration included.
+---
+
 # Getting Started with gomicro
 
 Get up and running with the goserve microservices architecture.

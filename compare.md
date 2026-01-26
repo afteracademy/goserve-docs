@@ -1,3 +1,8 @@
+---
+title: PostgreSQL vs MongoDB vs Microservices - Architecture Comparison
+description: Compare PostgreSQL, MongoDB, and microservices architectures for goserve. Choose the right stack for your Go REST API project based on scalability, complexity, and team size.
+---
+
 # Choose Your Architecture
 
 Not sure which example to start with? This guide will help you choose the right architecture for your project.

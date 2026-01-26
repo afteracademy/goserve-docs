@@ -1,4 +1,9 @@
-# Project Architecture
+---
+title: MongoDB REST API Architecture - goserve Example
+description: Explore goserve MongoDB architecture with document-based design, JWT authentication, flexible schemas, Redis caching, and comprehensive testing patterns.
+---
+
+# MongoDB Project Architecture
 
 Understanding the goserve MongoDB example API architecture and design patterns.
 

@@ -1,12 +1,14 @@
 ---
 layout: doc
+title: PostgreSQL REST API Example - goserve Framework
+description: Production-ready PostgreSQL REST API with Go. Features JWT authentication, RBAC, Redis caching, pgx driver, comprehensive testing, and Docker setup.
 ---
 
 # goserve Example API - PostgreSQL
 
 [![Docker Compose CI](https://github.com/afteracademy/goserve-example-api-server-postgres/actions/workflows/docker_compose.yml/badge.svg)](https://github.com/afteracademy/goserve-example-api-server-postgres/actions/workflows/docker_compose.yml)
 
-[![Architechture](https://img.shields.io/badge/Framework-blue?label=View&logo=go)](https://github.com/afteracademy/goserve)
+[![Architecture](https://img.shields.io/badge/Framework-blue?label=View&logo=go)](https://github.com/afteracademy/goserve)
 
 [![Starter Project](https://img.shields.io/badge/Starter%20Project%20CLI-red?label=Get&logo=go)](https://github.com/afteracademy/goservegen)
 

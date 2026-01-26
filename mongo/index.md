@@ -1,12 +1,14 @@
 ---
 layout: doc
+title: MongoDB REST API Example - goserve Framework
+description: Production-ready MongoDB REST API with Go. Features JWT authentication, flexible schemas, Redis caching, official MongoDB driver, comprehensive testing, and Docker setup.
 ---
 
 # goserve Example API - MongoDB
 
 [![Docker Compose CI](https://github.com/afteracademy/goserve-example-api-server-mongo/actions/workflows/docker_compose.yml/badge.svg)](https://github.com/afteracademy/goserve-example-api-server-mongo/actions/workflows/docker_compose.yml)
 
-[![Architechture](https://img.shields.io/badge/Framework-blue?label=View&logo=go)](https://github.com/afteracademy/goserve)
+[![Architecture](https://img.shields.io/badge/Framework-blue?label=View&logo=go)](https://github.com/afteracademy/goserve)
 
 [![Starter Project](https://img.shields.io/badge/Starter%20Project%20CLI-red?label=Get&logo=go)](https://github.com/afteracademy/goservegen)
 

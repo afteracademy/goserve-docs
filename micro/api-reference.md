@@ -1,3 +1,8 @@
+---
+title: Microservices API Reference - gomicro Endpoints
+description: Complete API reference for gomicro distributed system including auth service, blog service, Kong gateway routing, and inter-service communication via NATS.
+---
+
 # API Reference
 
 Complete API endpoint reference for the gomicro microservices system. All endpoints require an API key in the `x-api-key` header.

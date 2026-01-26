@@ -1,3 +1,8 @@
+---
+title: goserve Core Concepts - DTOs, Controllers, Services & Middleware
+description: Master goserve fundamentals including DTOs, request/response handling, controllers, services, middleware, authentication, authorization, and Redis caching.
+---
+
 # Core Concepts
 
 This guide covers the fundamental concepts and patterns used in the goserve framework. It is intended for developers who want to understand how to build scalable and maintainable web applications using goserve.

@@ -1,3 +1,8 @@
+---
+title: API Key Setup Guide - goserve Authentication
+description: Configure API key authentication for goserve PostgreSQL, MongoDB, and microservices examples. Secure your REST API endpoints with x-api-key headers.
+---
+
 # API Key Setup
 
 All example stacks protect endpoints with an `x-api-key` header except the `/health` endpoint. Use one stable key in your shell (`API_KEY`) and reuse it across requests.

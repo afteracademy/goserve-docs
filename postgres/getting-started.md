@@ -1,4 +1,9 @@
-# Getting Started
+---
+title: PostgreSQL REST API - Getting Started with goserve
+description: Build a production-ready PostgreSQL REST API with goserve. Includes JWT authentication, role-based access control, Redis caching, and comprehensive testing.
+---
+
+# Getting Started with PostgreSQL
 
 Get up and running with the goserve PostgreSQL example API server. 
 
