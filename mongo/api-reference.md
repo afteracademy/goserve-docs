@@ -557,5 +557,5 @@ Users can have the following roles:
 
 ## Next
 
-- Try the [goserve Postgres Example](/postgres)
-- Explore [goserve Microservice Example](/micro)
+- Try the [goserve Postgres Example](/postgres/)
+- Explore [goserve Microservice Example](/micro/)

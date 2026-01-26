@@ -124,7 +124,7 @@ docker exec -it goserver-mongo mongosh --eval "db.adminCommand('ping')"
 
 3. **Verify connection string in .env:**
 
-```env
+```
 DATABASE_URL=mongodb://goserve:changeit@goserver-mongo:27017/goserve_db?authSource=goserve_db
 ```
 
@@ -337,7 +337,7 @@ docker compose ps | grep nats
 
 2. **Verify NATS URL in .env:**
 
-```env
+```
 NATS_URL=nats://nats:4222
 ```
 
@@ -362,7 +362,7 @@ docker network inspect <network-name>
 
 2. **Verify service names in environment:**
 
-```env
+```
 # Services use container names for DNS
 AUTH_SERVICE_URL=http://goserver-auth:8080
 BLOG_SERVICE_URL=http://goserver-blog:8080
@@ -398,7 +398,7 @@ docker exec -it <redis-container> redis-cli ping
 
 3. **Verify Redis URL:**
 
-```env
+```
 REDIS_URL=redis:6379
 ```
 

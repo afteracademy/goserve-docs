@@ -190,7 +190,6 @@ Distributed architecture with:
 - **Understand the Architecture**: Read [Framework Architecture](/architecture) to learn goserve's layered design
 - **Learn Core Concepts**: Explore [Core Concepts](/core-concepts) for JWT auth, services, DTOs, and caching
 - **See a Complete Example**: Check out the [PostgreSQL Example](/postgres/) with full authentication and blog features
-- **Configure Your Setup**: Review [Configuration](/configuration) for environment variables and database setup
 
 ## Need Help?
 
