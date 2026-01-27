@@ -1,4 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;500;600;700;800;900&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600;700;800;900&display=swap");
 
 :root {
@@ -75,10 +76,27 @@
   border-radius: 50%;
 }
 
-code,
-pre {
+.vp-doc {
+  font-family:
+    "Source Sans 3", "Poppins", "Roboto", "Public Sans", system-ui, sans-serif;
+  font-size: 1.08rem;
+}
+
+.vp-doc p {
+  line-height: 1.5;
+}
+
+.vp-doc pre,
+code {
+  font-size: 0.9rem;
+  line-height: 1.6 !important;
   font-feature-settings: "liga" 0;
-	tab-size: 2!important;
-  -moz-tab-size: 2!important;
-  -o-tab-size: 2!important;
+  tab-size: 2 !important;
+  -moz-tab-size: 2 !important;
+  -o-tab-size: 2 !important;
+}
+
+.vp-doc .line-numbers-wrapper {
+  font-size: 0.8rem;
+  line-height: 1.58;
 }
