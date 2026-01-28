@@ -57,7 +57,7 @@ git clone https://github.com/afteracademy/goserve-example-api-server-postgres.gi
 cd goserve-example-api-server-postgres
 go run .tools/rsa/keygen.go && go run .tools/copy/envs.go
 docker compose up --build -d
-curl -H http://localhost:8080/health
+curl http://localhost:8080/health
 ```
 
 If you need the details, continue below.
