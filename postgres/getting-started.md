@@ -126,7 +126,7 @@ See [API key setup](/api-keys) for more details.
 ### 2. Sign Up
 
 ```bash
-curl --location 'http://localhost:8000/auth/signup/basic' \
+curl --location 'http://localhost:8080/auth/signup/basic' \
 --header 'x-api-key: 1D3F2DD1A5DE725DD4DF1D82BBB37' \
 --header 'Content-Type: application/json' \
 --data-raw '{
@@ -166,7 +166,7 @@ Response:
 ### 2. Sign In
 
 ```bash
-curl --location 'http://localhost:8000/auth/signin/basic' \
+curl --location 'http://localhost:8080/auth/signin/basic' \
 --header 'x-api-key: 1D3F2DD1A5DE725DD4DF1D82BBB37' \
 --header 'Content-Type: application/json' \
 --data-raw '{
@@ -177,7 +177,7 @@ curl --location 'http://localhost:8000/auth/signin/basic' \
 ### You must provide Roles to this user in the database to access protected routes.
 You can use the default admin user seeded in the database:
 ```bash
-curl --location 'http://localhost:8000/auth/signin/basic' \
+curl --location 'http://localhost:8080/auth/signin/basic' \
 --header 'x-api-key: 1D3F2DD1A5DE725DD4DF1D82BBB37' \
 --header 'Content-Type: application/json' \
 --data-raw '{
